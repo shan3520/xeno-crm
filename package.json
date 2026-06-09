@@ -14,7 +14,11 @@
     "test": "turbo run test",
     "dev:web": "turbo run dev --filter=@xeno/web",
     "dev:crm-api": "turbo run dev --filter=@xeno/crm-api",
-    "dev:channel-stub": "turbo run dev --filter=@xeno/channel-stub"
+    "dev:channel-stub": "turbo run dev --filter=@xeno/channel-stub",
+    "db:migrate": "pnpm --filter @xeno/crm-api db:migrate",
+    "db:seed": "pnpm --filter @xeno/crm-api db:seed",
+    "db:studio": "pnpm --filter @xeno/crm-api db:studio",
+    "db:generate": "pnpm --filter @xeno/crm-api db:generate"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

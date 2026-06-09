@@ -1,0 +1,288 @@
+// Xeno CRM — data contract (single source of truth for the DB).
+// Postgres on Neon. Money = Decimal, timestamps = timestamptz. Enums mirror @xeno/shared.
+// Schema + migration + seed only — no domain logic lives here.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums (mirror @xeno/shared) ----------
+
+enum Channel {
+  EMAIL
+  SMS
+  WHATSAPP
+  RCS
+}
+
+enum CommStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  OPENED
+  READ
+  CLICKED
+  FAILED
+}
+
+enum CommEventType {
+  SENT
+  DELIVERED
+  OPENED
+  READ
+  CLICKED
+  FAILED
+  CONVERTED
+}
+
+enum SegmentOrigin {
+  AI
+  MANUAL
+}
+
+enum CampaignStatus {
+  DRAFT
+  LAUNCHING
+  SENDING
+  COMPLETED
+  FAILED
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+  TOOL
+}
+
+enum AiTaskKind {
+  SEGMENT_RULE
+  MESSAGE_DRAFT
+  RESULTS_NARRATIVE
+}
+
+// ---------- Models ----------
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  customers   Customer[]
+  orders      Order[]
+  segments    Segment[]
+  campaigns   Campaign[]
+  chatThreads ChatThread[]
+  aiTaskLogs  AiTaskLog[]
+}
+
+model Customer {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  externalId   String
+  firstName    String
+  lastName     String
+  email        String
+  phone        String?
+  attributes   Json      @default("{}")
+  // Denormalized rollups kept in sync with the customer's orders (set at seed time).
+  totalSpend   Decimal   @default(0) @db.Decimal(12, 2)
+  orderCount   Int       @default(0)
+  firstOrderAt DateTime? @db.Timestamptz(6)
+  lastOrderAt  DateTime? @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(6)
+
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  orders         Order[]
+  communications Communication[]
+
+  @@unique([workspaceId, externalId])
+  @@index([workspaceId, email])
+  @@index([workspaceId, lastOrderAt])
+}
+
+model Order {
+  id                        String   @id @default(cuid())
+  workspaceId               String
+  customerId                String
+  externalId                String
+  totalAmount               Decimal  @db.Decimal(12, 2)
+  currency                  String   @default("INR")
+  status                    String   @default("paid")
+  orderedAt                 DateTime @db.Timestamptz(6)
+  attributedCommunicationId String?  @unique
+  createdAt                 DateTime @default(now()) @db.Timestamptz(6)
+
+  workspace               Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  customer                Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  // Last-touch attribution: the communication credited with driving this order.
+  attributedCommunication Communication? @relation("Attribution", fields: [attributedCommunicationId], references: [id])
+  items                   OrderItem[]
+
+  @@unique([workspaceId, externalId])
+  @@index([customerId, orderedAt])
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  productName String
+  sku         String?
+  category    String?
+  quantity    Int     @default(1)
+  unitPrice   Decimal @db.Decimal(12, 2)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([category])
+}
+
+model Segment {
+  id                 String        @id @default(cuid())
+  workspaceId        String
+  name               String
+  description        String?
+  definition         Json
+  origin             SegmentOrigin @default(AI)
+  lastEvaluatedCount Int?
+  lastEvaluatedAt    DateTime?     @db.Timestamptz(6)
+  createdAt          DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime      @updatedAt @db.Timestamptz(6)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model Campaign {
+  id              String         @id @default(cuid())
+  workspaceId     String
+  name            String
+  goal            String
+  // Snapshot reference to the segment used at launch (audience frozen at launch).
+  segmentId       String?
+  channel         Channel
+  messageTemplate String
+  status          CampaignStatus @default(DRAFT)
+  audienceSize    Int            @default(0)
+  launchedAt      DateTime?      @db.Timestamptz(6)
+
+  // Projection-cache counters (denormalized; kept in sync by the receipt handler).
+  queuedCount       Int     @default(0)
+  sentCount         Int     @default(0)
+  deliveredCount    Int     @default(0)
+  failedCount       Int     @default(0)
+  openedCount       Int     @default(0)
+  readCount         Int     @default(0)
+  clickedCount      Int     @default(0)
+  convertedCount    Int     @default(0)
+  attributedRevenue Decimal @default(0) @db.Decimal(14, 2)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  communications Communication[]
+
+  @@index([workspaceId, status])
+}
+
+model Communication {
+  id               String     @id @default(cuid())
+  campaignId       String
+  customerId       String
+  channel          Channel
+  recipientAddress String
+  renderedMessage  String
+  status           CommStatus @default(QUEUED)
+  providerMessageId String?
+
+  // Postgres-backed queue: lease + backoff fields claimed via FOR UPDATE SKIP LOCKED.
+  attemptCount  Int       @default(0)
+  nextAttemptAt DateTime? @db.Timestamptz(6)
+  lockedAt      DateTime? @db.Timestamptz(6)
+  lockedBy      String?
+
+  // Status timestamps (projection over events; not authoritative).
+  sentAt        DateTime? @db.Timestamptz(6)
+  deliveredAt   DateTime? @db.Timestamptz(6)
+  openedAt      DateTime? @db.Timestamptz(6)
+  readAt        DateTime? @db.Timestamptz(6)
+  clickedAt     DateTime? @db.Timestamptz(6)
+  failedAt      DateTime? @db.Timestamptz(6)
+  failureReason String?
+  convertedAt   DateTime? @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  campaign        Campaign             @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  customer        Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  events          CommunicationEvent[]
+  attributedOrder Order?               @relation("Attribution")
+
+  @@index([campaignId, status])
+  @@index([providerMessageId])
+  @@index([status, nextAttemptAt])
+}
+
+model CommunicationEvent {
+  id              String        @id @default(cuid())
+  communicationId String
+  type            CommEventType
+  occurredAt      DateTime      @db.Timestamptz(6)
+  receivedAt      DateTime      @default(now()) @db.Timestamptz(6)
+  payload         Json          @default("{}")
+  // Receipts are idempotent on this key.
+  idempotencyKey  String        @unique
+
+  communication Communication @relation(fields: [communicationId], references: [id], onDelete: Cascade)
+
+  @@index([communicationId, occurredAt])
+}
+
+model ChatThread {
+  id          String   @id @default(cuid())
+  workspaceId String
+  title       String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  threadId  String
+  role      ChatRole
+  content   Json
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+}
+
+model AiTaskLog {
+  id           String     @id @default(cuid())
+  workspaceId  String
+  kind         AiTaskKind
+  model        String
+  inputTokens  Int?
+  outputTokens Int?
+  latencyMs    Int?
+  input        Json?
+  output       Json?
+  createdAt    DateTime   @default(now()) @db.Timestamptz(6)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, kind, createdAt])
+}
