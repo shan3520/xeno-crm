@@ -1,5 +1,5 @@
 import Fastify from "fastify";
-import { SHARED_OK } from "@xeno/shared";
+import { ChannelSchema } from "@xeno/shared";
 
 interface HealthResponse {
   status: "ok";
@@ -16,7 +16,9 @@ async function start(): Promise<void> {
   const port = Number(process.env.PORT ?? 3002);
   try {
     await app.listen({ port, host: "0.0.0.0" });
-    app.log.info(`channel-stub listening on :${port} (shared ok: ${SHARED_OK})`);
+    app.log.info(
+      `channel-stub listening on :${port} (channels: ${ChannelSchema.options.join(", ")})`,
+    );
   } catch (err) {
     app.log.error(err);
     process.exit(1);
