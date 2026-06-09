@@ -1,19 +1,35 @@
 import "reflect-metadata";
 
-import { Logger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
-import { ChannelSchema } from "@xeno/shared";
 
+import { AppLogger } from "./common/app-logger.service";
+import { requestIdMiddleware } from "./common/request-id.middleware";
+import { AppConfigService } from "./config/app-config.service";
 import { AppModule } from "./app.module";
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
-  const port = Number(process.env.PORT ?? 3001);
-  await app.listen(port);
-  Logger.log(
-    `crm-api listening on http://localhost:${port} (channels: ${ChannelSchema.options.join(", ")})`,
-    "Bootstrap",
-  );
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  // Swap in the structured logger before anything else logs.
+  app.useLogger(app.get(AppLogger));
+
+  // Request-id context must wrap the request pipeline, so register before routes run.
+  app.use(requestIdMiddleware);
+
+  const config = app.get(AppConfigService);
+  app.enableCors({ origin: config.webOrigin, credentials: true });
+
+  await app.listen(config.port);
+  app
+    .get(AppLogger)
+    .log(
+      `crm-api listening on http://localhost:${config.port} (web origin: ${config.webOrigin})`,
+      "Bootstrap",
+    );
 }
 
-void bootstrap();
+void bootstrap().catch((err: unknown) => {
+  // Boot failed (e.g. invalid/missing env) — print the clear message and exit non-zero.
+  console.error(err instanceof Error ? err.message : err);
+  process.exit(1);
+});
