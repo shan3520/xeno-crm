@@ -1,0 +1,18 @@
+{
+  "name": "@xeno/load",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo \"@xeno/load: nothing to build yet\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "echo \"@xeno/load: no lint configured\"",
+    "test": "echo \"@xeno/load: no tests yet\""
+  },
+  "dependencies": {
+    "@xeno/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2"
+  }
+}
