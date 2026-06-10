@@ -65,6 +65,7 @@ Format per row: **Decision** — what I shipped for this scope · **Why** · **A
   "order came from this comm." At scale: real attribution windows, multi-touch models, holdouts.
 
 ## Analytics & consistency
+- Analytics merged to main ahead of its backend contract; dashboards render on empty/zero data until the send→receipt loop is live. Reconcile root QueryClientProvider + card styling in the frontend phase.
 - **Denormalized campaign counters updated by the receipt handler** — Why: fast dashboards.
   Tradeoff: eventual consistency; load harness asserts counters == event aggregates.
   At scale: stream processing / pre-aggregated rollups.
