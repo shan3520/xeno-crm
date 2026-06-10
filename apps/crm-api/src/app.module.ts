@@ -12,6 +12,7 @@ import { CustomersModule } from "./customers/customers.module";
 import { IngestModule } from "./ingest/ingest.module";
 import { OrdersModule } from "./orders/orders.module";
 import { PrismaModule } from "./prisma/prisma.module";
+import { SegmentsModule } from "./segments/segments.module";
 
 /**
  * Application spine. Domain modules (ingest, segments, campaigns, worker, receipts,
@@ -25,6 +26,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     CustomersModule,
     OrdersModule,
     IngestModule,
+    SegmentsModule,
     AnalyticsModule,
   ],
   controllers: [AppController],
