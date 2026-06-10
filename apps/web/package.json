@@ -8,11 +8,14 @@
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
     "lint": "echo \"@xeno/web: no lint configured\"",
-    "test": "echo \"@xeno/web: no tests yet\""
+    "test": "vitest run"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.80",
+    "@ai-sdk/react": "^3.0.200",
     "@tanstack/react-query": "^5.101.0",
     "@xeno/shared": "workspace:*",
+    "ai": "^6.0.198",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
@@ -30,6 +33,7 @@
     "postcss": "^8.4.49",
     "tailwindcss": "^4.0.0",
     "tw-animate-css": "^1.2.0",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.9"
   }
 }

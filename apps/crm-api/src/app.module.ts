@@ -9,6 +9,7 @@ import { LoggingInterceptor } from "./common/logging.interceptor";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { AppConfigModule } from "./config/config.module";
 import { CampaignsModule } from "./campaigns/campaigns.module";
+import { ChatModule } from "./chat/chat.module";
 import { CustomersModule } from "./customers/customers.module";
 import { IngestModule } from "./ingest/ingest.module";
 import { OrdersModule } from "./orders/orders.module";
@@ -34,6 +35,7 @@ import { SendWorkerModule } from "./send-worker/send-worker.module";
     SendWorkerModule,
     ReceiptsModule,
     AnalyticsModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [
