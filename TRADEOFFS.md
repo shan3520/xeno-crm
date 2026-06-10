@@ -84,5 +84,5 @@ Format per row: **Decision** — what I shipped for this scope · **Why** · **A
 - **No PII encryption / consent / suppression** — Why: out of scope, and all data is synthetic.
   At scale: encryption at rest, consent + opt-out, suppression lists, GDPR/DPDP compliance.
 
-## ___ (add yours as you build)
--
+## Lessons Learned
+- **Raw SQL bypasses Prisma's type safety** — A parallel agent shipped a raw query with the wrong casing. Caught because I understood the schema's default mapping.
