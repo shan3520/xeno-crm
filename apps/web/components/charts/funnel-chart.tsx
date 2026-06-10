@@ -1,0 +1,102 @@
+"use client";
+
+import { cn } from "@/lib/utils";
+import type { FunnelCounts } from "@/lib/analytics-api";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  LabelList,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+} from "recharts";
+
+interface FunnelChartProps {
+  funnel: FunnelCounts;
+  className?: string;
+}
+
+interface FunnelDatum {
+  stage: string;
+  value: number;
+  color: string;
+}
+
+export function FunnelChart({ funnel, className }: FunnelChartProps) {
+  const data: FunnelDatum[] = [
+    { stage: "Queued", value: funnel.queued, color: "var(--chart-1)" },
+    { stage: "Sent", value: funnel.sent, color: "var(--chart-2)" },
+    { stage: "Delivered", value: funnel.delivered, color: "var(--chart-3)" },
+    { stage: "Opened", value: funnel.opened, color: "var(--chart-4)" },
+    { stage: "Read", value: funnel.read, color: "var(--chart-5)" },
+    { stage: "Clicked", value: funnel.clicked, color: "var(--chart-1)" },
+    { stage: "Converted", value: funnel.converted, color: "var(--chart-2)" },
+    { stage: "Failed", value: funnel.failed, color: "hsl(0 84% 60%)" },
+  ];
+
+  const isEmpty = data.every((d) => d.value === 0);
+
+  if (isEmpty) {
+    return (
+      <div
+        className={cn(
+          "flex min-h-[300px] items-center justify-center rounded-xl border border-border bg-zinc-900/50 p-5 backdrop-blur-sm",
+          className,
+        )}
+      >
+        <p className="text-sm text-muted-foreground">No data yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-border bg-zinc-900/50 p-5 backdrop-blur-sm",
+        className,
+      )}
+    >
+      <h3 className="mb-4 text-sm font-medium text-muted-foreground">
+        Delivery Funnel
+      </h3>
+      <ResponsiveContainer width="100%" height={320}>
+        <BarChart
+          data={data}
+          layout="vertical"
+          margin={{ top: 0, right: 60, bottom: 0, left: 80 }}
+        >
+          <CartesianGrid
+            horizontal={false}
+            strokeDasharray="3 3"
+            stroke="hsl(var(--border))"
+          />
+          <XAxis type="number" hide />
+          <YAxis
+            type="category"
+            dataKey="stage"
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+            axisLine={false}
+            tickLine={false}
+            width={70}
+          />
+          <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={24}>
+            {data.map((entry) => (
+              <Cell key={entry.stage} fill={entry.color} />
+            ))}
+            <LabelList
+              dataKey="value"
+              position="right"
+              fill="hsl(var(--muted-foreground))"
+              fontSize={12}
+              formatter={(v: string | number | boolean | null | undefined) =>
+                new Intl.NumberFormat("en-IN").format(Number(v))
+              }
+            />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}

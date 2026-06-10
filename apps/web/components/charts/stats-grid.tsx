@@ -1,0 +1,104 @@
+"use client";
+
+import { cn } from "@/lib/utils";
+import type { DerivedRates, FunnelCounts } from "@/lib/analytics-api";
+
+interface StatsGridProps {
+  funnel: FunnelCounts;
+  rates: DerivedRates;
+  className?: string;
+}
+
+interface MetricCard {
+  label: string;
+  count: number;
+  rate: number;
+  rateLabel: string;
+  colorVar: string;
+}
+
+function formatNumber(n: number): string {
+  return new Intl.NumberFormat("en-IN").format(n);
+}
+
+function formatRate(rate: number): string {
+  return `${(rate * 100).toFixed(1)}%`;
+}
+
+export function StatsGrid({ funnel, rates, className }: StatsGridProps) {
+  const cards: MetricCard[] = [
+    {
+      label: "Sent",
+      count: funnel.sent,
+      rate: rates.deliveryRate,
+      rateLabel: "delivery",
+      colorVar: "var(--chart-1)",
+    },
+    {
+      label: "Delivered",
+      count: funnel.delivered,
+      rate: rates.deliveryRate,
+      rateLabel: "delivery",
+      colorVar: "var(--chart-2)",
+    },
+    {
+      label: "Opened",
+      count: funnel.opened,
+      rate: rates.openRate,
+      rateLabel: "open rate",
+      colorVar: "var(--chart-3)",
+    },
+    {
+      label: "Clicked",
+      count: funnel.clicked,
+      rate: rates.clickRate,
+      rateLabel: "click rate",
+      colorVar: "var(--chart-4)",
+    },
+  ];
+
+  return (
+    <div
+      className={cn(
+        "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4",
+        className,
+      )}
+    >
+      {cards.map((card) => (
+        <div
+          key={card.label}
+          className="relative overflow-hidden rounded-xl border border-border bg-zinc-900/50 p-5 backdrop-blur-sm"
+        >
+          {/* Accent top line */}
+          <div
+            className="absolute inset-x-0 top-0 h-0.5"
+            style={{ backgroundColor: card.colorVar }}
+          />
+
+          <p className="text-sm font-medium text-muted-foreground">
+            {card.label}
+          </p>
+
+          <p
+            className="mt-2 text-3xl font-bold tracking-tight text-foreground transition-all duration-500"
+            style={{
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {formatNumber(card.count)}
+          </p>
+
+          <p className="mt-1 text-sm text-muted-foreground">
+            <span
+              className="font-semibold"
+              style={{ color: card.colorVar }}
+            >
+              {formatRate(card.rate)}
+            </span>{" "}
+            {card.rateLabel}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}

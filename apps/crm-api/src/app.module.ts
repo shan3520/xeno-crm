@@ -6,6 +6,7 @@ import { AppController } from "./app.controller";
 import { AllExceptionsFilter } from "./common/all-exceptions.filter";
 import { AppLogger } from "./common/app-logger.service";
 import { LoggingInterceptor } from "./common/logging.interceptor";
+import { AnalyticsModule } from "./analytics/analytics.module";
 import { AppConfigModule } from "./config/config.module";
 import { PrismaModule } from "./prisma/prisma.module";
 
@@ -15,7 +16,7 @@ import { PrismaModule } from "./prisma/prisma.module";
  * config + Prisma + global Zod validation + structured logging + error envelope.
  */
 @Module({
-  imports: [AppConfigModule, PrismaModule],
+  imports: [AppConfigModule, PrismaModule, AnalyticsModule],
   controllers: [AppController],
   providers: [
     AppLogger,
