@@ -2,6 +2,7 @@ import { type ModelMessage, stepCountIs, streamText } from "ai";
 
 import { buildTools } from "@/lib/ai/tools";
 import { geminiModel, hasGeminiKey } from "@/lib/ai/provider";
+import { isRateLimited } from "@/lib/ai/errors";
 import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
 import { crm } from "@/lib/crm-client";
 
@@ -95,5 +96,11 @@ export async function POST(req: Request): Promise<Response> {
 
   return result.toUIMessageStreamResponse({
     headers: threadId ? { "x-thread-id": threadId } : undefined,
+    // Surface a friendly, client-parseable message instead of the SDK's masked default. A
+    // top-level rate-limit (the orchestrator model, not a tool) becomes a visible retry state.
+    onError: (error) =>
+      isRateLimited(error)
+        ? "rate_limited: The model is busy right now — please retry in a moment."
+        : "The assistant hit a snag. Please try again.",
   });
 }

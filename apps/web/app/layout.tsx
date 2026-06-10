@@ -2,18 +2,24 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import "./globals.css";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Xeno CRM",
-  description: "AI-native mini CRM — conversational campaign console.",
+  title: "Looms · Campaign Console",
+  description:
+    "AI-native mini CRM — state your intent in plain English, review editable segment, message, and launch cards.",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
+  // `dark` is applied at the root: the analytics dashboards and console cards are designed
+  // against the dark palette (zinc/blue/emerald on a near-black canvas). One place, no flash.
   return (
-    <html lang="en">
-      <body className="antialiased">{children}</body>
+    <html lang="en" className="dark">
+      <body className="bg-background text-foreground antialiased">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

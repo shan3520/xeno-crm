@@ -1,4 +1,10 @@
-import type { CampaignStatus, Channel } from "@xeno/shared";
+import type {
+  CampaignStatus,
+  Channel,
+  SegmentDefinition,
+} from "@xeno/shared";
+
+import type { SampleCustomer } from "@/lib/ai/tool-results";
 
 // ─── Response types (mirrors CRM API contract) ─────────────────────
 
@@ -118,6 +124,25 @@ async function get<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+async function post<T>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(`${API_BASE}/${path}`, {
+    method: "POST",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "Unknown error");
+    throw new ApiError(res.status, text);
+  }
+
+  const text = await res.text();
+  return (text ? JSON.parse(text) : undefined) as T;
+}
+
+export { ApiError };
+
 export function fetchCampaignStats(
   campaignId: string,
 ): Promise<CampaignStatsResponse> {
@@ -126,4 +151,54 @@ export function fetchCampaignStats(
 
 export function fetchAnalyticsOverview(): Promise<OverviewResponse> {
   return get<OverviewResponse>("analytics/overview");
+}
+
+// ─── Console mutations (segment preview · create · launch) ──────────
+// These are the browser-side calls the console makes directly: re-pricing an edited segment
+// rule, and the gated create+launch. The AI never writes — the user confirms, the UI calls.
+
+export interface SegmentPreviewResult {
+  count: number;
+  sample: SampleCustomer[];
+}
+
+/** Re-evaluate an (edited) segment definition for a live count + fresh sample. */
+export function previewSegment(
+  definition: SegmentDefinition,
+): Promise<SegmentPreviewResult> {
+  return post<SegmentPreviewResult>("segments/preview", { definition });
+}
+
+export interface CampaignCreateInput {
+  name: string;
+  goal: string;
+  channel: Channel;
+  messageTemplate: string;
+  definition: SegmentDefinition;
+}
+
+export interface CampaignResponse {
+  id: string;
+  name: string;
+  goal: string;
+  channel: Channel;
+  status: CampaignStatus;
+  audienceSize: number;
+  launchedAt: string | null;
+}
+
+/** Create a DRAFT campaign from the reviewed segment + channel + message. */
+export function createCampaign(
+  input: CampaignCreateInput,
+): Promise<CampaignResponse> {
+  return post<CampaignResponse>("campaigns", input);
+}
+
+export interface LaunchResult extends CampaignResponse {
+  skippedNoAddress: number;
+}
+
+/** Freeze the audience and flip the campaign to SENDING. The only launch path in the UI. */
+export function launchCampaign(campaignId: string): Promise<LaunchResult> {
+  return post<LaunchResult>(`campaigns/${campaignId}/launch`);
 }
