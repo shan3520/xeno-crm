@@ -13,6 +13,7 @@ import { CustomersModule } from "./customers/customers.module";
 import { IngestModule } from "./ingest/ingest.module";
 import { OrdersModule } from "./orders/orders.module";
 import { PrismaModule } from "./prisma/prisma.module";
+import { ReceiptsModule } from "./receipts/receipts.module";
 import { SegmentsModule } from "./segments/segments.module";
 import { SendWorkerModule } from "./send-worker/send-worker.module";
 
@@ -31,6 +32,7 @@ import { SendWorkerModule } from "./send-worker/send-worker.module";
     SegmentsModule,
     CampaignsModule,
     SendWorkerModule,
+    ReceiptsModule,
     AnalyticsModule,
   ],
   controllers: [AppController],
