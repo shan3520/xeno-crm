@@ -86,3 +86,14 @@ Format per row: **Decision** — what I shipped for this scope · **Why** · **A
 
 ## Lessons Learned
 - **Raw SQL bypasses Prisma's type safety** — A parallel agent shipped a raw query with the wrong casing. Caught because I understood the schema's default mapping.
+- **Lost-update race in receipt projection (found via load test, fixed)** — concurrent callbacks for the same comm
+  did read-modify-write without a row lock; last writer could regress status (DELIVERED→SENT) and deadlock completion
+  at ~2.4% under burst. Fix: SELECT ... FOR UPDATE on the comm as the first txn statement, serializing per-comm
+  projection. The append-only event log stayed correct throughout — only the materialized cache drifted, which is why
+  it was detectable and self-healable.
+- **Completion/reconciliation sweep** — callbacks can be dropped (stub retries 3× then drops its in-memory timer;
+  real channels drop webhooks too). A periodic sweep re-projects from the event log and re-checks completion, so a
+  campaign can't hang on a callback that never arrives. At scale: durable callback queue + DLQ instead of best-effort.
+- **Receipt throughput vs remote Neon** — receipts hold a pooled connection for a full round-trip; under burst the
+  pool saturated (Prisma 2003ms maxWait). Mitigated via Neon pooled endpoint + bounded worker concurrency. At scale:
+  co-located DB, higher pool limits, async receipt ingestion.
