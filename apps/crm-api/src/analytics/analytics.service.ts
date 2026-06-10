@@ -192,15 +192,17 @@ export class AnalyticsService {
     const interval = chooseBucketInterval(launchedAt);
 
     // Use a raw query for Postgres date_trunc with dynamic interval.
-    // We join communication_events to communications to filter by campaign_id.
+    // Prisma default naming: PascalCase tables, camelCase columns (no @@map/@map), so
+    // identifiers are case-sensitive and must be double-quoted. We join CommunicationEvent
+    // to Communication to filter by campaignId.
     const rows = await this.prisma.$queryRaw<TimelineRow[]>`
       SELECT
-        date_trunc(${interval}, ce."occurred_at") AS bucket,
-        ce."type"                                  AS type,
-        COUNT(*)::bigint                           AS count
-      FROM communication_events ce
-      JOIN communications c ON c.id = ce."communication_id"
-      WHERE c."campaign_id" = ${campaignId}
+        date_trunc(${interval}, ce."occurredAt") AS bucket,
+        ce."type"                                AS type,
+        COUNT(*)::bigint                         AS count
+      FROM "CommunicationEvent" ce
+      JOIN "Communication" c ON c."id" = ce."communicationId"
+      WHERE c."campaignId" = ${campaignId}
         AND ce."type" IN ('SENT', 'DELIVERED', 'OPENED', 'CLICKED', 'FAILED')
       GROUP BY bucket, ce."type"
       ORDER BY bucket ASC
