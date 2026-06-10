@@ -19,6 +19,10 @@ async function bootstrap(): Promise<void> {
   const config = app.get(AppConfigService);
   app.enableCors({ origin: config.webOrigin, credentials: true });
 
+  // Fire OnApplicationShutdown hooks on SIGINT/SIGTERM so the send-worker loop (and Prisma)
+  // shut down cleanly — no orphaned timers, no half-open pool.
+  app.enableShutdownHooks();
+
   await app.listen(config.port);
   app
     .get(AppLogger)
