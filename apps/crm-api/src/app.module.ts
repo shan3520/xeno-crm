@@ -8,6 +8,7 @@ import { AppLogger } from "./common/app-logger.service";
 import { LoggingInterceptor } from "./common/logging.interceptor";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { AppConfigModule } from "./config/config.module";
+import { CampaignsModule } from "./campaigns/campaigns.module";
 import { CustomersModule } from "./customers/customers.module";
 import { IngestModule } from "./ingest/ingest.module";
 import { OrdersModule } from "./orders/orders.module";
@@ -27,6 +28,7 @@ import { SegmentsModule } from "./segments/segments.module";
     OrdersModule,
     IngestModule,
     SegmentsModule,
+    CampaignsModule,
     AnalyticsModule,
   ],
   controllers: [AppController],
