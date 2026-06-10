@@ -8,6 +8,9 @@ import { AppLogger } from "./common/app-logger.service";
 import { LoggingInterceptor } from "./common/logging.interceptor";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { AppConfigModule } from "./config/config.module";
+import { CustomersModule } from "./customers/customers.module";
+import { IngestModule } from "./ingest/ingest.module";
+import { OrdersModule } from "./orders/orders.module";
 import { PrismaModule } from "./prisma/prisma.module";
 
 /**
@@ -16,7 +19,14 @@ import { PrismaModule } from "./prisma/prisma.module";
  * config + Prisma + global Zod validation + structured logging + error envelope.
  */
 @Module({
-  imports: [AppConfigModule, PrismaModule, AnalyticsModule],
+  imports: [
+    AppConfigModule,
+    PrismaModule,
+    CustomersModule,
+    OrdersModule,
+    IngestModule,
+    AnalyticsModule,
+  ],
   controllers: [AppController],
   providers: [
     AppLogger,
