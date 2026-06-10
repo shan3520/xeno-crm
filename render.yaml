@@ -1,0 +1,94 @@
+# Render Blueprint for the Xeno mini-CRM backend services.
+# Two FREE web services build from the monorepo ROOT (rootDir: .) with pnpm + Turborepo,
+# each filtered to one app. The crm-api service ALSO runs `prisma migrate deploy` and the
+# (idempotent) Looms seed at build time, against Neon.
+#
+# Cross-service URLs are intentionally `sync: false` (you fill them in the dashboard AFTER
+# the first deploy, once the *.onrender.com URLs exist). Everything else is pinned here.
+# See DEPLOY.md for the exact values and the order to deploy in.
+#
+# NOTE: the send-worker and the reconcile sweep run IN-PROCESS inside crm-api — there is no
+# separate worker service. One deployable owns the queue, the worker, and the receipts API.
+
+services:
+  # ── crm-api ──────────────────────────────────────────────────────────────────────────
+  # NestJS domain + Postgres-backed send queue + in-process worker + reconcile sweep +
+  # /receipts ingestion. Owns the database (runs migrations + seed on deploy).
+  - type: web
+    name: xeno-crm-api
+    runtime: node
+    region: oregon
+    plan: free
+    branch: main
+    rootDir: .
+    healthCheckPath: /health
+    # Build shared first (turbo ^build), then migrate + (optionally) seed Neon.
+    # Migrations/seed use MIGRATE_DATABASE_URL when set (Neon DIRECT endpoint — avoids the
+    # PgBouncer advisory-lock / prepared-statement caveats), falling back to DATABASE_URL.
+    # Set RUN_SEED=false on later deploys to preserve loop-generated demo data.
+    buildCommand: 'corepack enable && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@xeno/crm-api && DATABASE_URL="${MIGRATE_DATABASE_URL:-$DATABASE_URL}" pnpm --filter @xeno/crm-api db:deploy && { [ "$RUN_SEED" = "false" ] || DATABASE_URL="${MIGRATE_DATABASE_URL:-$DATABASE_URL}" pnpm --filter @xeno/crm-api db:seed; }'
+    startCommand: 'pnpm --filter @xeno/crm-api start'
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Neon POOLED connection string (the -pooler endpoint). Append
+      # ?sslmode=require&pgbouncer=true&connection_limit=5  — see DEPLOY.md.
+      - key: DATABASE_URL
+        sync: false
+      # OPTIONAL: Neon DIRECT (non-pooled) connection string, used only for migrate+seed.
+      # Leave unset to run migrations over the pooled URL.
+      - key: MIGRATE_DATABASE_URL
+        sync: false
+      # Public URL of the channel-stub service (https://xeno-channel-stub.onrender.com).
+      - key: CHANNEL_STUB_URL
+        sync: false
+      # This service's own public URL (https://xeno-crm-api.onrender.com).
+      - key: PUBLIC_BASE_URL
+        sync: false
+      # CORS allow-origin: the Vercel web URL (https://<your-web>.vercel.app).
+      - key: WEB_ORIGIN
+        sync: false
+      # Worker tuned conservatively for free tier + Neon pool headroom.
+      - key: WORKER_CONCURRENCY
+        value: "5"
+      - key: WORKER_MAX_ATTEMPTS
+        value: "5"
+      - key: SEND_RATE_PER_SEC
+        value: "20"
+      - key: RECONCILE_INTERVAL_MS
+        value: "30000"
+      # Set to "false" on redeploys to skip re-seeding (seed is idempotent: it wipes &
+      # rebuilds the Looms dataset, which also clears loop-generated communications).
+      - key: RUN_SEED
+        value: "true"
+
+  # ── channel-stub ─────────────────────────────────────────────────────────────────────
+  # Fastify provider stub: /send + jittered in-memory lifecycle callbacks -> crm /receipts.
+  - type: web
+    name: xeno-channel-stub
+    runtime: node
+    region: oregon
+    plan: free
+    branch: main
+    rootDir: .
+    healthCheckPath: /health
+    buildCommand: 'corepack enable && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@xeno/channel-stub'
+    startCommand: 'pnpm --filter @xeno/channel-stub start'
+    envVars:
+      # crm-api public URL + /receipts (https://xeno-crm-api.onrender.com/receipts).
+      - key: CRM_RECEIPT_URL
+        sync: false
+      - key: DELIVERED_RATE
+        value: "0.92"
+      - key: OPEN_RATE
+        value: "0.55"
+      - key: CLICK_RATE
+        value: "0.30"
+      - key: CONVERT_RATE
+        value: "0.15"
+      - key: DUPLICATE_PCT
+        value: "0.05"
+      - key: MIN_DELAY_MS
+        value: "500"
+      - key: MAX_DELAY_MS
+        value: "30000"

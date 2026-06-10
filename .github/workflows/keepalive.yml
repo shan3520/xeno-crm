@@ -1,0 +1,46 @@
+# Keep-alive pinger — defeats Render free-tier idle spin-down (~15 min) during eval windows.
+#
+# Pings the /health endpoints of crm-api and channel-stub every ~10 minutes so the first
+# real request in a demo doesn't eat a ~50s cold start.
+#
+# EASY DISABLE (so it doesn't keep Neon awake / burn compute outside demo windows):
+#   • Fastest: GitHub repo → Actions → "keepalive" → "···" → Disable workflow.
+#   • Or set repo Variable  KEEPALIVE_ENABLED = false  (the job is gated on it == 'true').
+#
+# CONFIGURE (repo → Settings → Secrets and variables → Actions → Variables):
+#   KEEPALIVE_ENABLED  = true
+#   CRM_API_URL        = https://xeno-crm-api.onrender.com
+#   CHANNEL_STUB_URL   = https://xeno-channel-stub.onrender.com
+# URLs are not secret, so they live in Variables (vars.*), not Secrets.
+
+name: keepalive
+
+on:
+  schedule:
+    # Every 10 minutes. GitHub cron is best-effort and may lag a few minutes under load.
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {} # allow manual "Run workflow" from the Actions tab
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    # Skip entirely unless explicitly enabled — keeps Neon asleep outside demo windows.
+    if: vars.KEEPALIVE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping crm-api /health
+        run: |
+          url="${{ vars.CRM_API_URL }}/health"
+          echo "GET $url"
+          curl -fsS --retry 2 --max-time 60 "$url" || echo "::warning::crm-api ping failed (cold start or down)"
+      - name: Ping channel-stub /health
+        run: |
+          url="${{ vars.CHANNEL_STUB_URL }}/health"
+          echo "GET $url"
+          curl -fsS --retry 2 --max-time 60 "$url" || echo "::warning::channel-stub ping failed (cold start or down)"
