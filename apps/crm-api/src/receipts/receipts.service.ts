@@ -9,6 +9,7 @@ import {
   type ReceiptResult,
 } from "./receipts.dto";
 import { projectCommunication, type CommunicationProjection } from "./projection";
+import { projectionToCommunicationUpdate } from "./projection-apply";
 
 /** Prisma client inside an interactive transaction. */
 type Tx = Prisma.TransactionClient;
@@ -36,6 +37,13 @@ export class ReceiptsService {
   async ingest(dto: ReceiptDto): Promise<ReceiptResult> {
     return this.prisma.$transaction(
       async (tx) => {
+        // 0. SERIALIZE per comm. This row lock is the FIRST statement so the whole
+        // read-modify-write below runs serially per Communication: concurrent callbacks for
+        // the SAME comm queue here, and each then re-reads the full committed event set, so a
+        // lower-precedence receipt (e.g. SENT) committing last can never regress status set by
+        // a higher one (e.g. DELIVERED). The lock is held only for this single short handler.
+        await tx.$queryRaw`SELECT "id" FROM "Communication" WHERE "id" = ${dto.communicationId} FOR UPDATE`;
+
         const comm = (await tx.communication.findUnique({
           where: { id: dto.communicationId },
           select: {
@@ -113,19 +121,8 @@ export class ReceiptsService {
     p: CommunicationProjection,
     dto: ReceiptDto,
   ): Prisma.CommunicationUpdateInput {
-    const data: Prisma.CommunicationUpdateInput = { status: p.status };
-    if (p.sentAt) data.sentAt = p.sentAt;
-    if (p.deliveredAt) data.deliveredAt = p.deliveredAt;
-    if (p.openedAt) data.openedAt = p.openedAt;
-    if (p.readAt) data.readAt = p.readAt;
-    if (p.clickedAt) data.clickedAt = p.clickedAt;
-    if (p.failedAt) data.failedAt = p.failedAt;
-    if (p.convertedAt) data.convertedAt = p.convertedAt;
-    if (p.status === "FAILED") {
-      const reason = typeof dto.payload?.reason === "string" ? dto.payload.reason : undefined;
-      data.failureReason = reason ?? "channel reported delivery failure";
-    }
-    return data;
+    const reason = typeof dto.payload?.reason === "string" ? dto.payload.reason : undefined;
+    return projectionToCommunicationUpdate(p, { failureReason: reason });
   }
 
   /**

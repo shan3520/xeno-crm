@@ -11,6 +11,8 @@ export const envSchema = z.object({
   WORKER_CONCURRENCY: z.coerce.number().int().positive(),
   WORKER_MAX_ATTEMPTS: z.coerce.number().int().positive(),
   SEND_RATE_PER_SEC: z.coerce.number().int().positive(),
+  // Reconciliation sweep cadence (ms). Defaulted so local dev works without extra config.
+  RECONCILE_INTERVAL_MS: z.coerce.number().int().positive().default(30_000),
   // CORS origin for the web app; defaulted so local dev works out of the box.
   WEB_ORIGIN: z.string().url().default("http://localhost:3000"),
   PORT: z.coerce.number().int().positive().default(3001),

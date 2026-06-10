@@ -39,6 +39,10 @@ export class AppConfigService {
     return this.get("SEND_RATE_PER_SEC");
   }
 
+  get reconcileIntervalMs(): number {
+    return this.get("RECONCILE_INTERVAL_MS");
+  }
+
   get webOrigin(): string {
     return this.get("WEB_ORIGIN");
   }

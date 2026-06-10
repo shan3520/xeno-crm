@@ -13,6 +13,7 @@
     "lint": "echo \"@xeno/crm-api: no lint configured\"",
     "test": "vitest run",
     "worker:once": "tsx src/send-worker/worker-once.ts",
+    "reconcile": "tsx src/receipts/reconcile-once.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",

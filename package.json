@@ -18,7 +18,8 @@
     "db:migrate": "pnpm --filter @xeno/crm-api db:migrate",
     "db:seed": "pnpm --filter @xeno/crm-api db:seed",
     "db:studio": "pnpm --filter @xeno/crm-api db:studio",
-    "db:generate": "pnpm --filter @xeno/crm-api db:generate"
+    "db:generate": "pnpm --filter @xeno/crm-api db:generate",
+    "reconcile": "pnpm --filter @xeno/crm-api reconcile"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
