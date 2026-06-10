@@ -3,10 +3,10 @@ packages:
   - "packages/*"
   - "tools/*"
 
-onlyBuiltDependencies:
-  - esbuild
-  - sharp
-  - "@tailwindcss/oxide"
-  - "@prisma/client"
-  - "@prisma/engines"
-  - prisma
+allowBuilds:
+  esbuild: true
+  sharp: true
+  "@tailwindcss/oxide": true
+  "@prisma/client": true
+  "@prisma/engines": true
+  prisma: true
