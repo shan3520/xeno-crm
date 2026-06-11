@@ -20,16 +20,30 @@ function rate(numerator: number, denominator: number): number {
   return Math.round((numerator / denominator) * 10_000) / 10_000; // 4 decimal places
 }
 
-/** Pick the right Postgres date_trunc interval based on campaign age. */
+/**
+ * Pick the bucket stride (a Postgres `interval`) based on campaign age. These feed `date_bin`,
+ * NOT `date_trunc`: date_trunc only accepts a single named field (minute/hour/day…) and throws
+ * 22023 on a multi-unit interval like '15 minutes', whereas date_bin bins on an arbitrary
+ * fixed-width stride. So every tier here — including the multi-unit '15 minutes' — is valid.
+ */
 function chooseBucketInterval(launchedAt: Date | null): string {
-  if (!launchedAt) return "hour";
+  if (!launchedAt) return "1 hour";
   const ageMs = Date.now() - launchedAt.getTime();
   const ageHours = ageMs / (1000 * 60 * 60);
-  if (ageHours <= 1) return "minute";
+  if (ageHours <= 1) return "1 minute";
   if (ageHours <= 24) return "15 minutes";
-  if (ageHours <= 168) return "hour"; // 7 days
-  return "day";
+  if (ageHours <= 168) return "1 hour"; // 7 days
+  return "1 day";
 }
+
+/**
+ * Fixed origin for `date_bin` (the Unix epoch, UTC). Binning against a constant UTC instant
+ * makes every bucket boundary stable and session-timezone-independent: a '1 day' stride lands
+ * on UTC midnight, '1 hour' on the UTC hour, '15 minutes' on :00/:15/:30/:45, etc. (date_trunc,
+ * by contrast, aligned day/hour buckets to the session TimeZone.) Stored timestamps are
+ * timestamptz/UTC, so this is the natural, deterministic reference.
+ */
+const BUCKET_ORIGIN = new Date(0);
 
 /** Shape of each row returned by the timeline raw query. */
 interface TimelineRow {
@@ -191,15 +205,23 @@ export class AnalyticsService {
   ): Promise<TimelineBucket[]> {
     const interval = chooseBucketInterval(launchedAt);
 
-    // Use a raw query for Postgres date_trunc with dynamic interval.
-    // Prisma default naming: PascalCase tables, camelCase columns (no @@map/@map), so
-    // identifiers are case-sensitive and must be double-quoted. We join CommunicationEvent
-    // to Communication to filter by campaignId.
+    // Bucket with date_bin (Postgres 14+), which accepts an arbitrary fixed-width stride — so
+    // every tier, including the multi-unit '15 minutes', is valid (date_trunc only takes a
+    // single field and 22023s on '15 minutes'). The stride is bound as a parameter and cast to
+    // `interval`; the origin is a fixed UTC instant for stable, timezone-independent boundaries.
+    // Prisma default naming: PascalCase tables, camelCase columns (no @@map/@map), so identifiers
+    // are case-sensitive and double-quoted. Join CommunicationEvent → Communication to scope by
+    // campaignId. All values are parameterized — no string interpolation of untrusted input.
+    //
+    // MANUAL CHECK (multi-unit tier): against the seeded DB, pick a campaign whose launchedAt is
+    // 1–24h ago (so chooseBucketInterval → '15 minutes') and hit GET /campaigns/:id/stats — it
+    // must return 200 with a populated `timeline`. Before this fix that path 500'd with
+    // 'unit "15 minutes" not recognized'. Spot-check every tier by varying launchedAt age.
     const rows = await this.prisma.$queryRaw<TimelineRow[]>`
       SELECT
-        date_trunc(${interval}, ce."occurredAt") AS bucket,
-        ce."type"                                AS type,
-        COUNT(*)::bigint                         AS count
+        date_bin(${interval}::interval, ce."occurredAt", ${BUCKET_ORIGIN}) AS bucket,
+        ce."type"                                                          AS type,
+        COUNT(*)::bigint                                                   AS count
       FROM "CommunicationEvent" ce
       JOIN "Communication" c ON c."id" = ce."communicationId"
       WHERE c."campaignId" = ${campaignId}
