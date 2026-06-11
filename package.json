@@ -19,7 +19,8 @@
     "db:seed": "pnpm --filter @xeno/crm-api db:seed",
     "db:studio": "pnpm --filter @xeno/crm-api db:studio",
     "db:generate": "pnpm --filter @xeno/crm-api db:generate",
-    "reconcile": "pnpm --filter @xeno/crm-api reconcile"
+    "reconcile": "pnpm --filter @xeno/crm-api reconcile",
+    "load": "pnpm --filter @xeno/load start"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

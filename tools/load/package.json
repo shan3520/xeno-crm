@@ -3,16 +3,20 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "echo \"@xeno/load: nothing to build yet\"",
+    "start": "tsx src/index.ts",
+    "load": "tsx src/index.ts",
+    "build": "echo \"@xeno/load: nothing to build (tsx-run harness)\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo \"@xeno/load: no lint configured\"",
     "test": "echo \"@xeno/load: no tests yet\""
   },
   "dependencies": {
+    "@prisma/client": "^6.1.0",
     "@xeno/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
 }

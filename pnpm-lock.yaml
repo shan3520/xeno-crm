@@ -186,6 +186,9 @@ importers:
 
   tools/load:
     dependencies:
+      '@prisma/client':
+        specifier: ^6.1.0
+        version: 6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)
       '@xeno/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -193,6 +196,9 @@ importers:
       '@types/node':
         specifier: ^22.10.0
         version: 22.19.20
+      tsx:
+        specifier: ^4.19.2
+        version: 4.22.4
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
