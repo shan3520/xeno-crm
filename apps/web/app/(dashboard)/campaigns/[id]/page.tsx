@@ -271,7 +271,7 @@ export default function CampaignDetailPage() {
       </div>
 
       {/* Stats grid */}
-      <StatsGrid funnel={funnel} rates={rates} />
+      <StatsGrid funnel={funnel} rates={rates} channel={campaign.channel} />
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-lg bg-muted/30 p-1">
