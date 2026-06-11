@@ -60,7 +60,7 @@ services:
       # Set to "false" on redeploys to skip re-seeding (seed is idempotent: it wipes &
       # rebuilds the Looms dataset, which also clears loop-generated communications).
       - key: RUN_SEED
-        value: "true"
+        value: "false"
 
   # ── channel-stub ─────────────────────────────────────────────────────────────────────
   # Fastify provider stub: /send + jittered in-memory lifecycle callbacks -> crm /receipts.
