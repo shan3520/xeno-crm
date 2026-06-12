@@ -119,7 +119,14 @@ const generateSegmentRule = tool({
         description: parsed.data.description,
         definition: parsed.data.definition,
         count: preview.count,
-        sample: preview.sample,
+        sample: (preview.sample as any[]).slice(0, 6).map((c) => ({
+          id: c.id,
+          firstName: c.firstName,
+          lastName: c.lastName,
+          email: c.email,
+          phone: null,
+          attributes: null,
+        })),
       };
     } catch (err) {
       return toToolFailure(err);
