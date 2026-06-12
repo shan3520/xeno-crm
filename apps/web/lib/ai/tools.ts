@@ -150,7 +150,7 @@ const draftMessage = tool({
         model,
         maxRetries: MAX_MODEL_RETRIES,
         temperature: 0,
-        system: `${SYSTEM_PROMPT}\n\nWrite for channel ${channel}. Personalize ONLY with these tokens: ${MESSAGE_TOKENS.map((t) => `{{${t}}}`).join(", ")}. Set "channel" to ${channel}.\n\nRespond with the JSON object only.`,
+        system: `${SYSTEM_PROMPT}\n\nWrite for channel ${channel}. Personalize ONLY with these tokens: ${MESSAGE_TOKENS.map((t) => `{{${t}}}`).join(", ")}.\n\nOutput ONLY a single JSON object with EXACTLY these keys: {"channel": "${channel}", "body": string, "rationale": string}.`,
         prompt: `Audience: ${segmentSummary}\nBrief: ${brief}`,
       });
 
@@ -204,7 +204,7 @@ const narrateResults = tool({
         model,
         maxRetries: MAX_MODEL_RETRIES,
         temperature: 0,
-        system: `${SYSTEM_PROMPT}\n\nGround every claim in the provided numbers — do not invent figures. Produce headline, whatHappened, why, and a concrete nextAction.\n\nRespond with the JSON object only.`,
+        system: `${SYSTEM_PROMPT}\n\nGround every claim in the provided numbers — do not invent figures.\n\nOutput ONLY a single JSON object with EXACTLY these keys: {"headline": string, "whatHappened": string, "why": string, "nextAction": string}.`,
         prompt: `Campaign stats JSON:\n${JSON.stringify(stats)}`,
       });
 
