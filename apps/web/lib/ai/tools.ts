@@ -182,26 +182,13 @@ const draftMessage = tool({
     const started = Date.now();
     try {
       const { model, servedTag } = resolveModel();
-      const { text, usage } = await generateText({
+      const { object, usage } = await generateObject({
         model,
         maxRetries: MAX_MODEL_RETRIES,
-        temperature: 0,
-        system: `${SYSTEM_PROMPT}\n\nWrite for channel ${channel}. Personalize ONLY with these tokens: ${MESSAGE_TOKENS.map((t) => `{{${t}}}`).join(", ")}.\n\nOutput ONLY a single JSON object with EXACTLY these keys: {"channel": "${channel}", "body": string, "rationale": string}.`,
+        schema: DraftMessageOutputSchema,
+        system: `${SYSTEM_PROMPT}\n\nWrite for channel ${channel}. Personalize ONLY with these tokens: ${MESSAGE_TOKENS.map((t) => `{{${t}}}`).join(", ")}.`,
         prompt: `Audience: ${segmentSummary}\nBrief: ${brief}`,
       });
-
-      const object = parseJsonObject(text);
-      const parsed = DraftMessageOutputSchema.safeParse(object);
-      if (!parsed.success) {
-        await logTask("MESSAGE_DRAFT", servedTag(), Date.now() - started, usage, { brief, channel }, {
-          validationError: parsed.error.message,
-        });
-        return {
-          ok: false,
-          error: "validation_failed",
-          message: `The drafted message failed validation: ${parsed.error.message}`,
-        } satisfies ToolFailure;
-      }
 
       await logTask(
         "MESSAGE_DRAFT",
@@ -209,13 +196,13 @@ const draftMessage = tool({
         Date.now() - started,
         usage,
         { brief, channel, segmentSummary },
-        parsed.data,
+        object,
       );
       return {
         ok: true as const,
-        channel: parsed.data.channel,
-        body: parsed.data.body,
-        rationale: parsed.data.rationale,
+        channel: object.channel,
+        body: object.body,
+        rationale: object.rationale,
       };
     } catch (err) {
       return toToolFailure(err);
@@ -236,26 +223,13 @@ const narrateResults = tool({
     try {
       const stats = await crm.campaignStats(campaignId);
       const { model, servedTag } = resolveModel();
-      const { text, usage } = await generateText({
+      const { object, usage } = await generateObject({
         model,
         maxRetries: MAX_MODEL_RETRIES,
-        temperature: 0,
-        system: `${SYSTEM_PROMPT}\n\nGround every claim in the provided numbers — do not invent figures.\n\nOutput ONLY a single JSON object with EXACTLY these keys: {"headline": string, "whatHappened": string, "why": string, "nextAction": string}.`,
+        schema: NarrateResultsOutputSchema,
+        system: `${SYSTEM_PROMPT}\n\nGround every claim in the provided numbers — do not invent figures.`,
         prompt: `Campaign stats JSON:\n${JSON.stringify(stats)}`,
       });
-
-      const object = parseJsonObject(text);
-      const parsed = NarrateResultsOutputSchema.safeParse(object);
-      if (!parsed.success) {
-        await logTask("RESULTS_NARRATIVE", servedTag(), Date.now() - started, usage, { campaignId }, {
-          validationError: parsed.error.message,
-        });
-        return {
-          ok: false,
-          error: "validation_failed",
-          message: `The results narrative failed validation: ${parsed.error.message}`,
-        } satisfies ToolFailure;
-      }
 
       await logTask(
         "RESULTS_NARRATIVE",
@@ -263,11 +237,11 @@ const narrateResults = tool({
         Date.now() - started,
         usage,
         { campaignId },
-        parsed.data,
+        object,
       );
       return {
         ok: true as const,
-        ...parsed.data,
+        ...object,
         stats: {
           funnel: stats.funnel,
           rates: stats.rates,
