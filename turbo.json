@@ -1,6 +1,15 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
+  "globalEnv": [
+    "GEMINI_MODEL",
+    "GEMINI_MODEL_FAST",
+    "CRM_API_URL",
+    "GEMINI_API_KEY",
+    "GROQ_API_KEY",
+    "GROQ_MODEL",
+    "AI_PROVIDER_ORDER"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
