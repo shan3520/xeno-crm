@@ -141,6 +141,7 @@ const draftMessage = tool({
       const { model, servedTag } = resolveModel();
       const { object, usage } = await generateObject({
         model,
+        mode: "json",
         maxRetries: MAX_MODEL_RETRIES,
         schema: DraftMessageOutputSchema,
         system: `${SYSTEM_PROMPT}\n\nWrite for channel ${channel}. Personalize ONLY with these tokens: ${MESSAGE_TOKENS.map((t) => `{{${t}}}`).join(", ")}. Set "channel" to ${channel}.`,
@@ -194,6 +195,7 @@ const narrateResults = tool({
       const { model, servedTag } = resolveModel();
       const { object, usage } = await generateObject({
         model,
+        mode: "json",
         maxRetries: MAX_MODEL_RETRIES,
         schema: NarrateResultsOutputSchema,
         system: `${SYSTEM_PROMPT}\n\nGround every claim in the provided numbers — do not invent figures. Produce headline, whatHappened, why, and a concrete nextAction.`,
