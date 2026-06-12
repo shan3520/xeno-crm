@@ -61,10 +61,46 @@ export function parseJsonObject(text: string): unknown {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
   const candidate = (fenced ? fenced[1] : text).trim();
   const start = candidate.indexOf("{");
-  const end = candidate.lastIndexOf("}");
-  if (start === -1 || end === -1 || end < start) {
+  if (start === -1) {
     throw new Error("model did not return a JSON object");
   }
+  
+  let balance = 0;
+  let end = -1;
+  // We must handle strings so we don't count braces inside strings.
+  let inString = false;
+  let escape = false;
+  
+  for (let i = start; i < candidate.length; i++) {
+    const char = candidate[i];
+    if (inString) {
+      if (escape) {
+        escape = false;
+      } else if (char === '\\') {
+        escape = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+    } else {
+      if (char === '"') {
+        inString = true;
+      } else if (char === '{') {
+        balance++;
+      } else if (char === '}') {
+        balance--;
+      }
+      
+      if (balance === 0) {
+        end = i;
+        break;
+      }
+    }
+  }
+  
+  if (end === -1 || end < start) {
+    throw new Error("model did not return a valid balanced JSON object");
+  }
+  
   return JSON.parse(candidate.slice(start, end + 1));
 }
 
