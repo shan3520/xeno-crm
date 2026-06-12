@@ -13,6 +13,7 @@ import {
   ArrowUp,
   BarChart3,
   Loader2,
+  Plus,
   RotateCcw,
   Sparkles,
   Square,
@@ -46,6 +47,17 @@ const EXAMPLE_PROMPTS = [
   "Target big spenders (₹50k+) who haven’t ordered in 90 days",
 ];
 
+/** sessionStorage key for the thread snapshot — a refresh restores the conversation. */
+const STORAGE_KEY = "xeno-console-thread";
+
+/**
+ * Client-side stall watchdog: if a turn is in flight but the stream has made no progress for
+ * this long, declare it stalled and surface a retry banner. The server already aborts itself
+ * at 50s, so this only catches transport-level hangs (e.g. a connection that never errors);
+ * it must sit ABOVE the server window so it never races a slow-but-healthy turn.
+ */
+const STALL_WATCHDOG_MS = 65_000;
+
 export function Console() {
   // Thread continuity: capture the server-issued thread id from the response header and
   // replay it on every subsequent turn so the conversation persists to one ChatThread.
@@ -67,13 +79,14 @@ export function Console() {
     [],
   );
 
-  const { messages, sendMessage, status, error, regenerate, stop } = useChat({
-    transport,
-  });
+  const { messages, sendMessage, setMessages, status, error, clearError, regenerate, stop } =
+    useChat({ transport });
 
   const [input, setInput] = useState("");
   const [activeSegment, setActiveSegment] = useState<ActiveSegment | null>(null);
   const [activeMessage, setActiveMessage] = useState<ActiveMessage | null>(null);
+  // A turn that hung or ended with nothing — shows a retry banner distinct from `error`.
+  const [stalled, setStalled] = useState(false);
 
   const handleSegmentActive = useCallback(
     (s: ActiveSegment) => setActiveSegment(s),
@@ -86,6 +99,80 @@ export function Console() {
 
   const busy = status === "submitted" || status === "streaming";
 
+  // ── Thread persistence ──
+  // Restore the snapshot once after mount (effect, not render, to avoid hydration mismatch).
+  // The tool cards re-fire onActive on mount, so restored segment/message cards also restore
+  // the launch panel.
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { threadId?: string; messages?: UIMessage[] };
+      if (saved.threadId) threadIdRef.current = saved.threadId;
+      if (Array.isArray(saved.messages) && saved.messages.length > 0) {
+        setMessages(saved.messages);
+      }
+    } catch {
+      sessionStorage.removeItem(STORAGE_KEY); // corrupted snapshot — start fresh
+    }
+  }, [setMessages]);
+
+  // Snapshot whenever a turn settles (not per streamed token).
+  useEffect(() => {
+    if (busy || messages.length === 0) return;
+    try {
+      sessionStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ threadId: threadIdRef.current, messages }),
+      );
+    } catch {
+      // Storage full/unavailable — persistence is best-effort.
+    }
+  }, [busy, messages]);
+
+  // ── Stall detection ──
+  // 1. Watchdog: no stream progress for STALL_WATCHDOG_MS while busy → stop + banner.
+  const lastProgressRef = useRef(Date.now());
+  useEffect(() => {
+    lastProgressRef.current = Date.now(); // any messages change while busy counts as progress
+  }, [messages]);
+  useEffect(() => {
+    if (!busy) return;
+    lastProgressRef.current = Date.now();
+    const timer = setInterval(() => {
+      if (Date.now() - lastProgressRef.current >= STALL_WATCHDOG_MS) {
+        void stop();
+        setStalled(true);
+      }
+    }, 5_000);
+    return () => clearInterval(timer);
+  }, [busy, stop]);
+
+  // 2. Empty finish: the server aborts a stalled model turn at ~50s; the stream then ends
+  // cleanly but without content. Detect a busy→ready transition that produced nothing and
+  // surface the same retry banner instead of silently going idle.
+  const userStoppedRef = useRef(false);
+  const prevStatusRef = useRef(status);
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = status;
+    if ((prev !== "submitted" && prev !== "streaming") || status !== "ready") return;
+    if (userStoppedRef.current) {
+      userStoppedRef.current = false; // the user hit Stop — idle is what they asked for
+      return;
+    }
+    const last = messages[messages.length - 1];
+    const producedContent =
+      last?.role === "assistant" &&
+      last.parts.some(
+        (p) => (p.type === "text" && p.text.trim().length > 0) || isToolUIPart(p),
+      );
+    if (!producedContent) setStalled(true);
+  }, [status, messages]);
+
   // Auto-scroll to the latest content as it streams.
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -96,7 +183,24 @@ export function Console() {
     const trimmed = text.trim();
     if (!trimmed || busy) return;
     setInput("");
+    setStalled(false);
     void sendMessage({ text: trimmed });
+  }
+
+  function retryTurn() {
+    setStalled(false);
+    void regenerate();
+  }
+
+  function resetThread() {
+    sessionStorage.removeItem(STORAGE_KEY);
+    threadIdRef.current = undefined;
+    setMessages([]);
+    setActiveSegment(null);
+    setActiveMessage(null);
+    setStalled(false);
+    setInput("");
+    clearError();
   }
 
   const rateLimited = /rate.?limit|429|busy/i.test(error?.message ?? "");
@@ -119,13 +223,26 @@ export function Console() {
             </p>
           </div>
         </div>
-        <Link
-          href="/campaigns"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        >
-          <BarChart3 className="h-3.5 w-3.5" />
-          Campaigns
-        </Link>
+        <div className="flex items-center gap-2">
+          {messages.length > 0 && (
+            <button
+              onClick={resetThread}
+              disabled={busy}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-40"
+              title="Start a fresh conversation"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              New chat
+            </button>
+          )}
+          <Link
+            href="/campaigns"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <BarChart3 className="h-3.5 w-3.5" />
+            Campaigns
+          </Link>
+        </div>
       </header>
 
       {/* ── Conversation ── */}
@@ -142,7 +259,7 @@ export function Console() {
                   onSegmentActive={handleSegmentActive}
                   onMessageActive={handleMessageActive}
                   sampleCustomer={activeSegment?.sample[0]}
-                  onRetry={() => void regenerate()}
+                  onRetry={retryTurn}
                 />
               ))}
 
@@ -166,7 +283,26 @@ export function Console() {
                       : "Something interrupted that turn."}
                   </p>
                   <button
-                    onClick={() => void regenerate()}
+                    onClick={retryTurn}
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/50 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Retry
+                  </button>
+                </div>
+              )}
+
+              {stalled && !error && !busy && (
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-5 py-4">
+                  <p className="text-sm font-medium text-foreground">
+                    That turn went quiet
+                  </p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    The model didn’t respond in time — it’s likely rate-limited.
+                    Give it a moment, then retry.
+                  </p>
+                  <button
+                    onClick={retryTurn}
                     className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/50 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
@@ -207,7 +343,10 @@ export function Console() {
             />
             {busy ? (
               <button
-                onClick={() => void stop()}
+                onClick={() => {
+                  userStoppedRef.current = true;
+                  void stop();
+                }}
                 className="flex h-8 w-8 items-center justify-center rounded-xl bg-secondary text-secondary-foreground transition-colors hover:bg-accent"
                 title="Stop"
               >

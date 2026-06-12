@@ -159,7 +159,11 @@ function CampaignRow({ campaign }: { campaign: CampaignSummaryRow }) {
         {campaign.delivered.toLocaleString()}
       </td>
       <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
-        {pct(campaign.openRate)}
+        {campaign.channel === "SMS" ? (
+          <span title="Open tracking isn't available on SMS">n/a</span>
+        ) : (
+          pct(campaign.openRate)
+        )}
       </td>
       <td className="px-4 py-3 text-right tabular-nums">
         {formatRevenue(campaign.attributedRevenue)}

@@ -1,7 +1,8 @@
 import { type ModelMessage, stepCountIs, streamText } from "ai";
 
 import { buildTools } from "@/lib/ai/tools";
-import { geminiModel, hasGeminiKey } from "@/lib/ai/provider";
+import { hasGeminiKey } from "@/lib/ai/provider";
+import { providerChain, withFallback } from "@/lib/ai/providers";
 import { isRateLimited } from "@/lib/ai/errors";
 import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
 import { crm } from "@/lib/crm-client";
@@ -13,6 +14,21 @@ export const maxDuration = 60; // Vercel Hobby ceiling — keep turns to <=2 too
 const MAX_STEPS = 3;
 /** SDK retries (exponential backoff) before a 429 is surfaced as a typed error. */
 const MAX_MODEL_RETRIES = 3;
+/**
+ * Hard ceiling for the whole model turn, safely under Vercel's maxDuration (60s). Without it,
+ * a stalled Gemini call (free-tier quota backoff) rides until Vercel hard-kills the function —
+ * the stream just dies and the client spins on "Thinking…" forever with no error to render.
+ * Aborting ourselves turns the stall into a typed error part the UI shows as a retry banner.
+ */
+const STREAM_TIMEOUT_MS = 50_000;
+
+/** True for an AbortSignal.timeout()-style abort (DOMException TimeoutError / AbortError). */
+function isTimeout(error: unknown): boolean {
+  if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
+    return true;
+  }
+  return /timed?.?out|aborted/i.test(error instanceof Error ? error.message : String(error));
+}
 
 interface IncomingMessage {
   role: "user" | "assistant" | "system";
@@ -33,9 +49,18 @@ function messageText(m: IncomingMessage): string {
 }
 
 export async function POST(req: Request): Promise<Response> {
-  if (!hasGeminiKey()) {
+  // Ordered fallback chain (default: gemini only — identical to the pre-fallback behavior).
+  // An empty chain means no provider in AI_PROVIDER_ORDER has its key set; for the default
+  // (gemini-only) order we keep the exact pre-fallback error message.
+  const chain = providerChain();
+  if (chain.length === 0) {
     return Response.json(
-      { error: "config", message: "GEMINI_API_KEY is not configured on the server." },
+      {
+        error: "config",
+        message: hasGeminiKey()
+          ? "No configured AI provider in AI_PROVIDER_ORDER — check the provider API keys."
+          : "GEMINI_API_KEY is not configured on the server.",
+      },
       { status: 500 },
     );
   }
@@ -74,12 +99,19 @@ export async function POST(req: Request): Promise<Response> {
     .map((m) => ({ role: m.role as "user" | "assistant", content: messageText(m) }));
 
   const result = streamText({
-    model: geminiModel(),
+    // With a single-entry chain this IS the bare gemini model; with more entries a
+    // rate-limited/unavailable primary falls through to the next provider transparently.
+    model: withFallback(chain, (served) => {
+      if (served.id !== chain[0]!.id) {
+        console.log(`[/api/chat] turn served by fallback provider "${served.id}" (${served.tag})`);
+      }
+    }),
     system: SYSTEM_PROMPT,
     messages: modelMessages,
     tools: buildTools(),
     stopWhen: stepCountIs(MAX_STEPS),
     maxRetries: MAX_MODEL_RETRIES,
+    abortSignal: AbortSignal.timeout(STREAM_TIMEOUT_MS),
     // A transient model error (e.g. a 429 surviving retries) is surfaced into the stream as a
     // typed error part rather than crashing the request.
     onError: ({ error }) => {
@@ -101,6 +133,8 @@ export async function POST(req: Request): Promise<Response> {
     onError: (error) =>
       isRateLimited(error)
         ? "rate_limited: The model is busy right now — please retry in a moment."
-        : "The assistant hit a snag. Please try again.",
+        : isTimeout(error)
+          ? "rate_limited: The model took too long to respond (it is likely rate-limited) — please retry in a moment."
+          : "The assistant hit a snag. Please try again.",
   });
 }

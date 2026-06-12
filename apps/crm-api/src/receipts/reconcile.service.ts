@@ -10,14 +10,29 @@ import { isBehind, projectionToCommunicationUpdate } from "./projection-apply";
 export interface ReconcileSummary {
   campaignsChecked: number;
   commsHealed: number;
+  commsExpired: number;
   campaignsCompleted: number;
 }
 
 /** Per-campaign reconciliation result. */
 export interface CampaignReconcileResult {
   healed: number;
+  expired: number;
   completed: boolean;
 }
+
+/**
+ * How long a SENT comm may wait for its first lifecycle receipt before the sweep declares the
+ * callbacks lost and expires it as FAILED. The stub fires callbacks on in-memory timers within
+ * MAX_DELAY_MS (default 30s, plus duplicate jitter) — so 10 minutes is a ~20× safety margin.
+ * A stub restart drops its pending timers; without this timeout those comms would sit at SENT
+ * forever and pin their campaign in SENDING. A constant (like the worker's LEASE_MS), not env:
+ * it only needs to be "much longer than any legitimate callback delay".
+ */
+export const RECEIPT_TIMEOUT_MS = 10 * 60_000;
+
+/** failureReason / event payload reason stamped on an expired comm. */
+const EXPIRE_REASON = "no lifecycle receipt within timeout — channel callbacks assumed lost";
 
 /**
  * SQL precedence rank, kept in lockstep with STATUS_RANK in projection-apply.ts. Used inside
@@ -47,12 +62,16 @@ const STATUS_RANK_SQL = Prisma.sql`CASE c."status"
 /**
  * Reconciliation / completion sweep — defense-in-depth around the receipt projection.
  *
- * Two failure modes it heals:
+ * Three failure modes it heals:
  *  1. A status that drifted BEHIND its events (the lost-update race FIX 1 closes; this catches
  *     any row written before the fix, or by a path we don't control). The append-only event
  *     log is the source of truth: we re-project from it and advance the stored status — never
  *     downgrade.
- *  2. A SENDING campaign that can't complete because a comm is stuck in-flight. Once no comm
+ *  2. A comm stuck at SENT because the stub's in-memory callbacks were lost (stub restart,
+ *     dropped POSTs). After RECEIPT_TIMEOUT_MS with no receipt we APPEND a synthetic FAILED
+ *     event (the event log stays the source of truth — status is still a projection) and
+ *     re-project, so the comm terminates instead of pinning its campaign in SENDING forever.
+ *  3. A SENDING campaign that can't complete because a comm is stuck in-flight. Once no comm
  *     remains QUEUED/SENT (so no further receipt will move a counter), we recompute the
  *     receipt-owned counters authoritatively from the event sets and flip to COMPLETED — so a
  *     dropped stub callback can't hang a campaign forever.
@@ -74,16 +93,27 @@ export class ReconcileService {
     });
 
     let commsHealed = 0;
+    let commsExpired = 0;
     let campaignsCompleted = 0;
     for (const { id } of sending) {
       const result = await this.reconcileCampaign(id);
       commsHealed += result.healed;
+      commsExpired += result.expired;
       if (result.completed) campaignsCompleted++;
     }
-    return { campaignsChecked: sending.length, commsHealed, campaignsCompleted };
+    return {
+      campaignsChecked: sending.length,
+      commsHealed,
+      commsExpired,
+      campaignsCompleted,
+    };
   }
 
-  /** Heal any drifted comms in one campaign, then complete it if nothing is in-flight. */
+  /**
+   * Heal any drifted comms in one campaign, expire any SENT comm whose receipts are overdue,
+   * then complete the campaign if nothing is left in-flight. Heal runs FIRST so a comm whose
+   * events already advanced it past SENT is never considered for expiry.
+   */
   async reconcileCampaign(campaignId: string): Promise<CampaignReconcileResult> {
     const drifted = await this.findDriftedCommIds(campaignId);
     let healed = 0;
@@ -91,13 +121,15 @@ export class ReconcileService {
       if (await this.healComm(id)) healed++;
     }
 
+    const expired = await this.expireStaleSends(campaignId);
+
     const completed = await this.finalizeIfComplete(campaignId);
-    if (healed > 0 || completed) {
+    if (healed > 0 || expired > 0 || completed) {
       this.logger.log(
-        `reconcile ${campaignId}: healed=${healed} completed=${completed}`,
+        `reconcile ${campaignId}: healed=${healed} expired=${expired} completed=${completed}`,
       );
     }
-    return { healed, completed };
+    return { healed, expired, completed };
   }
 
   /**
@@ -148,6 +180,85 @@ export class ReconcileService {
         where: { id },
         data: projectionToCommunicationUpdate(projection, { failureReason }),
       });
+      return true;
+    });
+  }
+
+  /**
+   * Expire every SENT comm in the campaign whose sentAt is older than RECEIPT_TIMEOUT_MS and
+   * which has received no further receipt. The stub's callbacks ride in-memory timers, so a
+   * stub restart silently drops them — without this, such a comm stays SENT forever and the
+   * campaign can never flip to COMPLETED. Returns how many comms were expired.
+   */
+  private async expireStaleSends(campaignId: string): Promise<number> {
+    const cutoff = new Date(Date.now() - RECEIPT_TIMEOUT_MS);
+    const stale = await this.prisma.communication.findMany({
+      where: { campaignId, status: "SENT", sentAt: { lt: cutoff } },
+      select: { id: true },
+    });
+
+    let expired = 0;
+    for (const { id } of stale) {
+      if (await this.expireComm(id, campaignId, cutoff)) expired++;
+    }
+    return expired;
+  }
+
+  /**
+   * Expire ONE overdue comm by APPENDING a synthetic FAILED event and re-projecting — never by
+   * writing status directly, so the event log remains the source of truth. Serialized on the
+   * comm row exactly like the live receipt handler: if a real receipt slipped in while we
+   * waited for the lock, the re-check sees the comm past SENT and bails. Idempotent via the
+   * deterministic idempotencyKey (a second pass inserts nothing). Mirrors the live handler's
+   * counter rule: failedCount increments only on the comm's FIRST FAILED event.
+   */
+  private async expireComm(
+    id: string,
+    campaignId: string,
+    cutoff: Date,
+  ): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "Communication" WHERE "id" = ${id} FOR UPDATE`;
+
+      const comm = await tx.communication.findUnique({
+        where: { id },
+        select: { status: true, sentAt: true },
+      });
+      if (!comm || comm.status !== "SENT" || !comm.sentAt || comm.sentAt >= cutoff) {
+        return false; // advanced (or re-sent) while we waited — a receipt beat us; leave it
+      }
+
+      const inserted = await tx.communicationEvent.createMany({
+        data: [
+          {
+            communicationId: id,
+            type: "FAILED",
+            occurredAt: new Date(),
+            payload: { reason: EXPIRE_REASON, source: "reconcile-expire" },
+            idempotencyKey: `reconcile-expire:${id}`,
+          },
+        ],
+        skipDuplicates: true,
+      });
+      if (inserted.count === 0) return false; // already expired by an earlier pass
+
+      const events = (await tx.communicationEvent.findMany({
+        where: { communicationId: id },
+        select: { type: true, occurredAt: true },
+      })) as ProjectionEvent[];
+      const projection = projectCommunication(events);
+      await tx.communication.update({
+        where: { id },
+        data: projectionToCommunicationUpdate(projection, { failureReason: EXPIRE_REASON }),
+      });
+
+      const failedEvents = events.filter((e) => e.type === "FAILED").length;
+      if (failedEvents === 1) {
+        await tx.campaign.update({
+          where: { id: campaignId },
+          data: { failedCount: { increment: 1 } },
+        });
+      }
       return true;
     });
   }

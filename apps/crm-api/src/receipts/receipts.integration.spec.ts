@@ -194,6 +194,57 @@ describe.skipIf(!runDbTests)("receipts concurrency + reconcile (DB)", () => {
     expect(camp?.failedCount).toBe(1);
   }, DB_TIMEOUT_MS);
 
+  it("FIX 3: sweep expires a SENT comm whose receipts never arrived and completes the campaign", async () => {
+    const campaignId = await newCampaign();
+    // A comm the worker sent long ago whose stub callbacks were lost (e.g. stub restart):
+    // status SENT, sentAt far past the receipt timeout, no events beyond SENT.
+    const orphaned = await newComm(campaignId, "SENT");
+    const longAgo = new Date(Date.now() - 30 * 60_000);
+    await prisma.communication.update({
+      where: { id: orphaned },
+      data: { sentAt: longAgo },
+    });
+    await addEvent(orphaned, "SENT", longAgo.toISOString());
+    // A FRESH sent comm must NOT be expired — its receipts may still be in flight.
+    const fresh = await newComm(campaignId, "SENT");
+    await prisma.communication.update({
+      where: { id: fresh },
+      data: { sentAt: new Date() },
+    });
+
+    const result = await reconcile.reconcileCampaign(campaignId);
+    expect(result.expired).toBe(1);
+    expect(result.completed).toBe(false); // fresh comm still in-flight
+
+    const row = await prisma.communication.findUnique({
+      where: { id: orphaned },
+      select: { status: true, failureReason: true },
+    });
+    expect(row?.status).toBe("FAILED");
+    expect(row?.failureReason).toContain("no lifecycle receipt");
+
+    const camp = await prisma.campaign.findUnique({
+      where: { id: campaignId },
+      select: { failedCount: true, status: true },
+    });
+    expect(camp?.failedCount).toBe(1);
+    expect(camp?.status).toBe("SENDING");
+
+    // Idempotent: a second pass inserts nothing and double-counts nothing…
+    const again = await reconcile.reconcileCampaign(campaignId);
+    expect(again.expired).toBe(0);
+
+    // …and once the fresh comm resolves, the live receipt path completes the campaign
+    // (the expired comm is terminal, so nothing remains in-flight).
+    await receipts.ingest(receipt(fresh, "SENT", new Date().toISOString()));
+    await receipts.ingest(receipt(fresh, "DELIVERED", new Date().toISOString()));
+    const finalCamp = await prisma.campaign.findUnique({
+      where: { id: campaignId },
+      select: { status: true },
+    });
+    expect(finalCamp?.status).toBe("COMPLETED");
+  }, DB_TIMEOUT_MS);
+
   it("FIX 2: sweep never downgrades a correctly-advanced comm and is idempotent", async () => {
     const campaignId = await newCampaign();
     const clicked = await newComm(campaignId, "CLICKED");
