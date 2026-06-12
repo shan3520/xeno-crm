@@ -11,14 +11,31 @@ import {
 
 import { crm } from "@/lib/crm-client";
 import { toToolFailure, type ToolFailure } from "@/lib/ai/errors";
-import { GEMINI_MODEL_ID, geminiModel } from "@/lib/ai/provider";
+import { GEMINI_MODEL_ID } from "@/lib/ai/provider";
+import { providerChain, withFallback } from "@/lib/ai/providers";
 import { MESSAGE_TOKENS, SEGMENT_GEN_SYSTEM, SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
 
 const MAX_MODEL_RETRIES = 3; // SDK does exponential backoff between these (covers 429s).
 
+/**
+ * Resolve the provider fallback chain for ONE tool call and track which provider actually
+ * served it, so the AiTaskLog row records the real provider+model (e.g. "gemini-2.5-flash"
+ * or "groq:llama-3.3-70b-versatile"). With the default single-provider chain this is the
+ * bare gemini model and the tag is GEMINI_MODEL_ID — identical to the pre-fallback rows.
+ */
+function resolveModel() {
+  const chain = providerChain();
+  let tag = chain[0]?.tag ?? GEMINI_MODEL_ID;
+  const model = withFallback(chain, (served) => {
+    tag = served.tag;
+  });
+  return { model, servedTag: () => tag };
+}
+
 /** Best-effort AI audit write — a logging failure must never break a tool result. */
 async function logTask(
   kind: "SEGMENT_RULE" | "MESSAGE_DRAFT" | "RESULTS_NARRATIVE",
+  model: string,
   latencyMs: number,
   usage: { inputTokens?: number; outputTokens?: number },
   input: unknown,
@@ -27,7 +44,7 @@ async function logTask(
   try {
     await crm.writeAiTaskLog({
       kind,
-      model: GEMINI_MODEL_ID,
+      model,
       latencyMs,
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
@@ -65,8 +82,9 @@ const generateSegmentRule = tool({
   async execute({ intent }) {
     const started = Date.now();
     try {
+      const { model, servedTag } = resolveModel();
       const { text, usage } = await generateText({
-        model: geminiModel(),
+        model,
         maxRetries: MAX_MODEL_RETRIES,
         temperature: 0, // deterministic, on-spec JSON
         system: SEGMENT_GEN_SYSTEM,
@@ -76,7 +94,7 @@ const generateSegmentRule = tool({
       const parsed = GenerateSegmentRuleOutputSchema.safeParse(parseJsonObject(text));
       if (!parsed.success) {
         // e.g. a non-whitelisted field/operator — reject, never hit preview or the DB.
-        await logTask("SEGMENT_RULE", Date.now() - started, usage, { intent }, {
+        await logTask("SEGMENT_RULE", servedTag(), Date.now() - started, usage, { intent }, {
           validationError: parsed.error.message,
         });
         return {
@@ -89,6 +107,7 @@ const generateSegmentRule = tool({
       const preview = await crm.segmentPreview(parsed.data.definition);
       await logTask(
         "SEGMENT_RULE",
+        servedTag(),
         Date.now() - started,
         usage,
         { intent },
@@ -119,8 +138,9 @@ const draftMessage = tool({
   async execute({ brief, channel, segmentSummary }) {
     const started = Date.now();
     try {
+      const { model, servedTag } = resolveModel();
       const { object, usage } = await generateObject({
-        model: geminiModel(),
+        model,
         maxRetries: MAX_MODEL_RETRIES,
         schema: DraftMessageOutputSchema,
         system: `${SYSTEM_PROMPT}\n\nWrite for channel ${channel}. Personalize ONLY with these tokens: ${MESSAGE_TOKENS.map((t) => `{{${t}}}`).join(", ")}. Set "channel" to ${channel}.`,
@@ -129,7 +149,7 @@ const draftMessage = tool({
 
       const parsed = DraftMessageOutputSchema.safeParse(object);
       if (!parsed.success) {
-        await logTask("MESSAGE_DRAFT", Date.now() - started, usage, { brief, channel }, {
+        await logTask("MESSAGE_DRAFT", servedTag(), Date.now() - started, usage, { brief, channel }, {
           validationError: parsed.error.message,
         });
         return {
@@ -141,6 +161,7 @@ const draftMessage = tool({
 
       await logTask(
         "MESSAGE_DRAFT",
+        servedTag(),
         Date.now() - started,
         usage,
         { brief, channel, segmentSummary },
@@ -170,8 +191,9 @@ const narrateResults = tool({
     const started = Date.now();
     try {
       const stats = await crm.campaignStats(campaignId);
+      const { model, servedTag } = resolveModel();
       const { object, usage } = await generateObject({
-        model: geminiModel(),
+        model,
         maxRetries: MAX_MODEL_RETRIES,
         schema: NarrateResultsOutputSchema,
         system: `${SYSTEM_PROMPT}\n\nGround every claim in the provided numbers — do not invent figures. Produce headline, whatHappened, why, and a concrete nextAction.`,
@@ -180,7 +202,7 @@ const narrateResults = tool({
 
       const parsed = NarrateResultsOutputSchema.safeParse(object);
       if (!parsed.success) {
-        await logTask("RESULTS_NARRATIVE", Date.now() - started, usage, { campaignId }, {
+        await logTask("RESULTS_NARRATIVE", servedTag(), Date.now() - started, usage, { campaignId }, {
           validationError: parsed.error.message,
         });
         return {
@@ -192,6 +214,7 @@ const narrateResults = tool({
 
       await logTask(
         "RESULTS_NARRATIVE",
+        servedTag(),
         Date.now() - started,
         usage,
         { campaignId },
