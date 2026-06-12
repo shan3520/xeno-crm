@@ -139,15 +139,15 @@ const draftMessage = tool({
     const started = Date.now();
     try {
       const { model, servedTag } = resolveModel();
-      const { object, usage } = await generateObject({
+      const { text, usage } = await generateText({
         model,
-        mode: "json",
         maxRetries: MAX_MODEL_RETRIES,
-        schema: DraftMessageOutputSchema,
-        system: `${SYSTEM_PROMPT}\n\nWrite for channel ${channel}. Personalize ONLY with these tokens: ${MESSAGE_TOKENS.map((t) => `{{${t}}}`).join(", ")}. Set "channel" to ${channel}.`,
+        temperature: 0,
+        system: `${SYSTEM_PROMPT}\n\nWrite for channel ${channel}. Personalize ONLY with these tokens: ${MESSAGE_TOKENS.map((t) => `{{${t}}}`).join(", ")}. Set "channel" to ${channel}.\n\nRespond with the JSON object only.`,
         prompt: `Audience: ${segmentSummary}\nBrief: ${brief}`,
       });
 
+      const object = parseJsonObject(text);
       const parsed = DraftMessageOutputSchema.safeParse(object);
       if (!parsed.success) {
         await logTask("MESSAGE_DRAFT", servedTag(), Date.now() - started, usage, { brief, channel }, {
@@ -193,15 +193,15 @@ const narrateResults = tool({
     try {
       const stats = await crm.campaignStats(campaignId);
       const { model, servedTag } = resolveModel();
-      const { object, usage } = await generateObject({
+      const { text, usage } = await generateText({
         model,
-        mode: "json",
         maxRetries: MAX_MODEL_RETRIES,
-        schema: NarrateResultsOutputSchema,
-        system: `${SYSTEM_PROMPT}\n\nGround every claim in the provided numbers — do not invent figures. Produce headline, whatHappened, why, and a concrete nextAction.`,
+        temperature: 0,
+        system: `${SYSTEM_PROMPT}\n\nGround every claim in the provided numbers — do not invent figures. Produce headline, whatHappened, why, and a concrete nextAction.\n\nRespond with the JSON object only.`,
         prompt: `Campaign stats JSON:\n${JSON.stringify(stats)}`,
       });
 
+      const object = parseJsonObject(text);
       const parsed = NarrateResultsOutputSchema.safeParse(object);
       if (!parsed.success) {
         await logTask("RESULTS_NARRATIVE", servedTag(), Date.now() - started, usage, { campaignId }, {
