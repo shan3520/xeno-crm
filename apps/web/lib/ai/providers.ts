@@ -1,4 +1,5 @@
 import { createGroq } from "@ai-sdk/groq";
+import { createOpenAI } from "@ai-sdk/openai";
 import { APICallError, type LanguageModel } from "ai";
 
 import { isRateLimited } from "@/lib/ai/errors";
@@ -63,6 +64,9 @@ export interface ResolvedProvider {
 const GROQ_DEFAULT_MODEL = "llama-3.3-70b-versatile";
 const groqModelId = (): string => process.env.GROQ_MODEL ?? GROQ_DEFAULT_MODEL;
 
+const NVIDIA_DEFAULT_MODEL = "meta/llama-3.3-70b-instruct";
+const nvidiaModelId = (): string => process.env.NVIDIA_MODEL ?? NVIDIA_DEFAULT_MODEL;
+
 const REGISTRY: Record<string, ProviderSpec> = {
   gemini: {
     id: "gemini",
@@ -80,6 +84,19 @@ const REGISTRY: Record<string, ProviderSpec> = {
     model: () =>
       createGroq({ apiKey: process.env.GROQ_API_KEY ?? "" })(groqModelId()) as SpecModel,
   },
+  nvidia: {
+    id: "nvidia",
+    isConfigured: () => Boolean(process.env.NVIDIA_API_KEY),
+    modelId: nvidiaModelId,
+    tag: () => `nvidia:${nvidiaModelId()}`,
+    model: () => {
+      const nvidiaProvider = createOpenAI({
+        baseURL: "https://integrate.api.nvidia.com/v1",
+        apiKey: process.env.NVIDIA_API_KEY ?? "",
+      });
+      return nvidiaProvider(nvidiaModelId()) as SpecModel;
+    },
+  },
 };
 
 /**
@@ -88,7 +105,7 @@ const REGISTRY: Record<string, ProviderSpec> = {
  * blank AI_PROVIDER_ORDER means "gemini" — today's behavior exactly.
  */
 export function providerChain(): ResolvedProvider[] {
-  const raw = process.env.AI_PROVIDER_ORDER?.trim() || "gemini";
+  const raw = process.env.AI_PROVIDER_ORDER?.trim() || "nvidia,gemini";
   const chain: ResolvedProvider[] = [];
   for (const part of raw.split(",")) {
     const id = part.trim().toLowerCase();
