@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import "./globals.css";
+import { BackendStatusBanner } from "@/components/backend-status-banner";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
@@ -18,7 +19,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="bg-background text-foreground antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <BackendStatusBanner />
+        </Providers>
       </body>
     </html>
   );

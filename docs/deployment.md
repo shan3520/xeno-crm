@@ -217,12 +217,15 @@ These are **Variables**, not Secrets (URLs aren't sensitive). The workflow also 
 ## 6. Known free-tier behaviors (read before the demo)
 
 - **Render cold start (~50s):** a free service spins down after ~15 min idle; the next request
-  pays a ~50s cold start. The keep-alive (§5) prevents this **during** your eval window. Outside
-  it, the first hit after idle will be slow — warm both `/health` URLs a minute before demoing.
-- **Neon scale-to-zero:** the free Neon compute suspends when idle and takes a few seconds to
-  wake on the first query. Combined with a Render cold start, the very first request of a session
-  can be slow; subsequent ones are fast. The keep-alive indirectly keeps Neon warm too — which is
-  exactly why you should **disable** it outside demo windows to conserve Neon compute.
+  pays a ~50s cold start. The keep-alive (§5) prevents this **during** your eval window. Even when
+  cold, the web app shows a **"waking up the backend…" banner** that pings `/health` (triggering the
+  wake-up) and auto-dismisses once it responds — so a cold open is self-explanatory, not "frozen."
+- **Neon scale-to-zero & compute budget:** Neon's free tier **suspends compute after 5 min idle**
+  (sub-second-to-seconds wake on the next query) and allows **100 CU-hours/month** — ≈400 wall-clock
+  hours at the 0.25 CU floor. The keep-alive keeps crm-api up, whose 30s reconcile sweep keeps Neon
+  awake, so it burns CU-hours continuously while enabled. Over a multi-day eval window that's a small
+  fraction of the 100 CU-hours (fine); running it **24/7 all month** would eventually exhaust them and
+  suspend compute. So enable the keep-alive for demo windows, **not permanently**.
 - **In-process worker:** the send-worker and reconcile sweep run **inside** the crm-api service —
   there is no separate worker dyno/service, by design. When crm-api is cold/asleep, the queue
   drains only once it wakes (a `/health` ping or any request wakes it).

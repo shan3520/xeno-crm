@@ -153,6 +153,20 @@ export function fetchAnalyticsOverview(): Promise<OverviewResponse> {
   return get<OverviewResponse>("analytics/overview");
 }
 
+export interface HealthResponse {
+  status: string;
+  service?: string;
+}
+
+/**
+ * Ping crm-api's /health. Used by the cold-start banner both to DETECT a sleeping free-tier
+ * backend (the request hangs ~50s while Render wakes, or 5xx's mid-wake) and to TRIGGER the
+ * wake-up just by loading the app. Resolves to { status: "ok" } once the service is warm.
+ */
+export function fetchCrmHealth(): Promise<HealthResponse> {
+  return get<HealthResponse>("health");
+}
+
 // ─── Console mutations (segment preview · create · launch) ──────────
 // These are the browser-side calls the console makes directly: re-pricing an edited segment
 // rule, and the gated create+launch. The AI never writes — the user confirms, the UI calls.

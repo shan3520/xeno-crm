@@ -131,4 +131,8 @@ this scope" — is laid out explicitly in the
   typed "retry" surface rather than crashing.
 - **Channel-stub:** callbacks retry with backoff and never crash the stub if the CRM is briefly
   unreachable.
-- **Free-tier ops:** GitHub Actions cron pings both `/health` URLs to mitigate Render cold starts.
+- **Free-tier ops:** GitHub Actions cron pings both `/health` URLs to mitigate Render cold starts;
+  and the web app's **cold-start banner** ([`backend-status-banner.tsx`](../apps/web/components/backend-status-banner.tsx))
+  pings crm-api `/health` on load — both *triggering* the wake-up and showing a calm
+  "waking up the backend…" message that auto-dismisses once it responds, so a cold open reads as
+  expected rather than frozen.

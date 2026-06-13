@@ -14,9 +14,10 @@ Built for the **Xeno Engineering Take-Home — "Build an AI-Native Mini CRM for 
 | 🩺 crm-api health | https://xeno-crm-api.onrender.com/health |
 | 🩺 channel-stub health | https://xeno-channel-stub.onrender.com/health |
 
-> ⚠️ The backend runs on **free tiers** (Render + Neon) that sleep when idle. The first request
-> after a cold period can take ~50s while services wake. Hit the two health URLs above once to warm
-> them before demoing.
+> ⚠️ The backend runs on **free tiers** (Render + Neon) that sleep when idle, so the first request
+> after a cold period can take ~50s while services wake. **The app handles this gracefully** — it
+> shows a "waking up the backend…" indicator and recovers on its own, no action needed. (To skip the
+> wait entirely, open the two health URLs above once first.)
 
 ---
 
@@ -148,11 +149,15 @@ X at scale."*
 
 **Cost — the whole stack runs at $0.**
 - **Hosting: Vercel (web) + Render ×2 + Neon (Postgres)** — all free, no card on load-bearing pieces.
-  Tradeoff: Render free services cold-start after ~15 min idle and the stub's in-memory timers are lost
-  on restart. Mitigation: a GitHub Actions cron pings `/health` during the eval window. *At scale:*
-  always-on instances + durable callback scheduling.
-- **Neon free Postgres (scale-to-zero, 0.5 GB)** — ample for synthetic data; sub-second cold start.
-  *At scale:* paid autoscaling Neon, read replicas, dedicated pooling.
+  Tradeoff: Render free services cold-start after ~15 min idle (~50s) and the stub's in-memory timers
+  are lost on restart. Mitigation: a GitHub Actions cron pings `/health` during the eval window, **and
+  the web app shows a self-explanatory "waking up" banner that auto-recovers** so a cold open never
+  reads as broken. *At scale:* always-on instances + durable callback scheduling.
+- **Neon free Postgres** — 0.5 GB storage; **scale-to-zero after 5 min idle** (sub-second wake);
+  **100 CU-hours of compute/month** (≈400 wall-clock hours at the 0.25 CU floor). Ample for synthetic
+  data and a multi-day eval window. Keeping it warm 24/7 *all month* would eventually use up the
+  CU-hours and suspend compute — which is exactly why the keep-alive is meant for demo windows, not as
+  a permanent always-on posture. *At scale:* paid autoscaling Neon, read replicas, dedicated pooling.
 - **Free-tier LLMs behind a fallback chain** (Groq / NVIDIA NIM / Gemini) — no budget; the
   structured-output design is provider-agnostic, so the chain is *config* (`AI_PROVIDER_ORDER`), not
   code. Rate limits / slowness degrade to a typed "retry" surface and fail over to the next provider.
