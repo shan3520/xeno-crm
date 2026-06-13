@@ -33,7 +33,7 @@ export function FunnelChart({ funnel, className }: FunnelChartProps) {
     { stage: "Read", value: funnel.read, color: "var(--chart-5)" },
     { stage: "Clicked", value: funnel.clicked, color: "var(--chart-1)" },
     { stage: "Converted", value: funnel.converted, color: "var(--chart-2)" },
-    { stage: "Failed", value: funnel.failed, color: "hsl(0 84% 60%)" },
+    { stage: "Failed", value: funnel.failed, color: "var(--destructive)" },
   ];
 
   const isEmpty = data.every((d) => d.value === 0);
@@ -42,7 +42,7 @@ export function FunnelChart({ funnel, className }: FunnelChartProps) {
     return (
       <div
         className={cn(
-          "flex min-h-[300px] items-center justify-center rounded-xl border border-border bg-zinc-900/50 p-5 backdrop-blur-sm",
+          "flex min-h-[300px] items-center justify-center rounded-xl border border-border bg-card/40 p-5 backdrop-blur-sm",
           className,
         )}
       >
@@ -54,7 +54,7 @@ export function FunnelChart({ funnel, className }: FunnelChartProps) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-zinc-900/50 p-5 backdrop-blur-sm",
+        "rounded-xl border border-border bg-card/40 p-5 backdrop-blur-sm",
         className,
       )}
     >
@@ -70,13 +70,13 @@ export function FunnelChart({ funnel, className }: FunnelChartProps) {
           <CartesianGrid
             horizontal={false}
             strokeDasharray="3 3"
-            stroke="hsl(var(--border))"
+            stroke="var(--border)"
           />
           <XAxis type="number" hide />
           <YAxis
             type="category"
             dataKey="stage"
-            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+            tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
             axisLine={false}
             tickLine={false}
             width={70}
@@ -88,7 +88,7 @@ export function FunnelChart({ funnel, className }: FunnelChartProps) {
             <LabelList
               dataKey="value"
               position="right"
-              fill="hsl(var(--muted-foreground))"
+              fill="var(--muted-foreground)"
               fontSize={12}
               formatter={(v: string | number | boolean | null | undefined) =>
                 new Intl.NumberFormat("en-IN").format(Number(v))

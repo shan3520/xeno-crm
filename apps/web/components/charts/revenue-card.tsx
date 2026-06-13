@@ -43,14 +43,14 @@ export function RevenueCard({
       className={cn(
         "relative overflow-hidden rounded-xl border border-border p-6 backdrop-blur-sm",
         hasRevenue
-          ? "bg-gradient-to-br from-emerald-950/40 to-zinc-900/50"
-          : "bg-zinc-900/50",
+          ? "bg-gradient-to-br from-launch/10 to-card/40"
+          : "bg-card/40",
         className,
       )}
     >
       {/* Subtle glow effect */}
       {hasRevenue && (
-        <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-emerald-500/10 blur-2xl" />
+        <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-launch/10 blur-2xl" />
       )}
 
       <div className="relative">
@@ -60,8 +60,8 @@ export function RevenueCard({
             className={cn(
               "flex h-8 w-8 items-center justify-center rounded-lg",
               hasRevenue
-                ? "bg-emerald-500/20 text-emerald-400"
-                : "bg-zinc-800 text-muted-foreground",
+                ? "bg-launch/15 text-launch"
+                : "bg-muted text-muted-foreground",
             )}
           >
             <IndianRupee className="h-4 w-4" />
@@ -75,7 +75,7 @@ export function RevenueCard({
         <p
           className={cn(
             "text-3xl font-bold tracking-tight transition-all duration-500",
-            hasRevenue ? "text-emerald-400" : "text-foreground",
+            hasRevenue ? "text-launch" : "text-foreground",
           )}
           style={{ fontVariantNumeric: "tabular-nums" }}
         >
@@ -88,14 +88,14 @@ export function RevenueCard({
             <TrendingUp
               className={cn(
                 "h-3.5 w-3.5",
-                hasRevenue ? "text-emerald-400" : "text-muted-foreground",
+                hasRevenue ? "text-launch" : "text-muted-foreground",
               )}
             />
             <span className="text-sm text-muted-foreground">
               <span
                 className={cn(
                   "font-semibold",
-                  hasRevenue ? "text-emerald-400" : "text-foreground",
+                  hasRevenue ? "text-launch" : "text-foreground",
                 )}
               >
                 {formatRate(conversionRate)}

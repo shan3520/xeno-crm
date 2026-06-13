@@ -42,7 +42,7 @@ export function ToolFailureCard({
           {rateLimited && onRetry && (
             <button
               onClick={onRetry}
-              className="mt-2 rounded-lg border border-border bg-background/50 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+              className="mt-2 rounded-lg border border-border bg-background/50 px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent active:scale-[0.98]"
             >
               Retry
             </button>

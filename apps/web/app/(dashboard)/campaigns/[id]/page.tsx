@@ -29,19 +29,19 @@ const STATUS_STYLES: Record<
   CampaignStatus,
   { bg: string; text: string; dot?: string }
 > = {
-  DRAFT: { bg: "bg-zinc-800/60", text: "text-zinc-400" },
+  DRAFT: { bg: "bg-muted", text: "text-muted-foreground" },
   LAUNCHING: {
-    bg: "bg-blue-500/15",
-    text: "text-blue-400",
+    bg: "bg-brand/15",
+    text: "text-brand",
     dot: "animate-pulse",
   },
   SENDING: {
-    bg: "bg-blue-500/15",
-    text: "text-blue-400",
+    bg: "bg-brand/15",
+    text: "text-brand",
     dot: "animate-pulse",
   },
-  COMPLETED: { bg: "bg-emerald-500/15", text: "text-emerald-400" },
-  FAILED: { bg: "bg-red-500/15", text: "text-red-400" },
+  COMPLETED: { bg: "bg-launch/15", text: "text-launch" },
+  FAILED: { bg: "bg-destructive/15", text: "text-destructive" },
 };
 
 function StatusBadge({ status }: { status: CampaignStatus }) {
@@ -99,9 +99,9 @@ function TabButton({
     <button
       onClick={() => onClick(tab)}
       className={cn(
-        "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+        "rounded-lg px-4 py-2 text-sm font-medium transition active:scale-[0.98]",
         active
-          ? "bg-accent text-accent-foreground"
+          ? "bg-card text-foreground shadow-sm ring-1 ring-border"
           : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
       )}
     >
@@ -153,8 +153,8 @@ function ErrorState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="rounded-2xl bg-red-500/10 p-4">
-        <AlertCircle className="h-10 w-10 text-red-400" />
+      <div className="rounded-2xl bg-destructive/10 p-4">
+        <AlertCircle className="h-10 w-10 text-destructive" />
       </div>
       <h3 className="mt-4 text-lg font-medium">
         Failed to load campaign stats
@@ -162,7 +162,7 @@ function ErrorState({
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">{message}</p>
       <button
         onClick={onRetry}
-        className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
       >
         Retry
       </button>
@@ -237,7 +237,7 @@ export default function CampaignDetailPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-2xl font-semibold tracking-tight text-balance">
             {campaign.name}
           </h1>
           <p className="text-sm text-muted-foreground">{campaign.goal}</p>
@@ -259,8 +259,8 @@ export default function CampaignDetailPage() {
         {/* Live indicator */}
         <div className="flex items-center gap-2">
           {isLive && (
-            <div className="flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-400">
-              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-blue-400" />
+            <div className="flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1 text-xs font-medium text-brand">
+              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-brand" />
               Live
             </div>
           )}

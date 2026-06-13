@@ -35,7 +35,7 @@ const EVENTS: EventConfig[] = [
   { key: "delivered", label: "Delivered", color: "var(--chart-2)" },
   { key: "opened", label: "Opened", color: "var(--chart-3)" },
   { key: "clicked", label: "Clicked", color: "var(--chart-4)" },
-  { key: "failed", label: "Failed", color: "hsl(0 84% 60%)" },
+  { key: "failed", label: "Failed", color: "var(--destructive)" },
 ];
 
 function formatTimestamp(bucket: string, isShortDuration: boolean): string {
@@ -88,7 +88,7 @@ function CustomTooltip({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-zinc-900 px-3 py-2 shadow-xl">
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 shadow-elevated">
       <p className="mb-1 text-xs text-muted-foreground">{formattedLabel}</p>
       {payload.map((entry) => (
         <div
@@ -114,7 +114,7 @@ export function TimelineChart({ data, className }: TimelineChartProps) {
     return (
       <div
         className={cn(
-          "flex min-h-[300px] items-center justify-center rounded-xl border border-border bg-zinc-900/50 p-5 backdrop-blur-sm",
+          "flex min-h-[300px] items-center justify-center rounded-xl border border-border bg-card/40 p-5 backdrop-blur-sm",
           className,
         )}
       >
@@ -130,7 +130,7 @@ export function TimelineChart({ data, className }: TimelineChartProps) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-zinc-900/50 p-5 backdrop-blur-sm",
+        "rounded-xl border border-border bg-card/40 p-5 backdrop-blur-sm",
         className,
       )}
     >
@@ -175,18 +175,18 @@ export function TimelineChart({ data, className }: TimelineChartProps) {
           </defs>
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="hsl(var(--border))"
+            stroke="var(--border)"
             vertical={false}
           />
           <XAxis
             dataKey="bucket"
             tickFormatter={(v: string) => formatTimestamp(v, shortDuration)}
-            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+            tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+            tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             width={40}

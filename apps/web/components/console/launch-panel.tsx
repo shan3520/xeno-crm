@@ -65,11 +65,11 @@ export function LaunchPanel({ segment, message }: Props) {
   // ─── Success state ────────────────────────────────────────────────
   if (phase === "launched" && launched) {
     return (
-      <div className="overflow-hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/5 shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-launch/30 bg-launch/5 shadow-elevated">
         <div className="flex flex-col items-start gap-3 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
-            <div className="rounded-xl bg-emerald-500/15 p-2.5">
-              <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+            <div className="rounded-xl bg-launch/15 p-2.5">
+              <CheckCircle2 className="h-6 w-6 text-launch" />
             </div>
             <div>
               <h3 className="text-base font-semibold text-foreground">
@@ -87,7 +87,7 @@ export function LaunchPanel({ segment, message }: Props) {
           </div>
           <Link
             href={`/campaigns/${launched.id}`}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-500/90 px-4 py-2 text-sm font-medium text-emerald-950 transition-colors hover:bg-emerald-400"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-launch px-4 py-2 text-sm font-medium text-background transition hover:bg-launch/90 active:scale-[0.98]"
           >
             View live dashboard
             <ArrowRight className="h-4 w-4" />
@@ -99,9 +99,9 @@ export function LaunchPanel({ segment, message }: Props) {
 
   // ─── Compose / confirm state ──────────────────────────────────────
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-sm backdrop-blur-sm">
-      <div className="flex items-center gap-2 border-b border-border/60 bg-gradient-to-br from-emerald-500/10 to-transparent px-5 py-4">
-        <Rocket className="h-4 w-4 text-emerald-400" />
+    <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-elevated backdrop-blur-sm">
+      <div className="flex items-center gap-2 border-b border-border/60 bg-gradient-to-br from-launch/10 to-transparent px-5 py-4">
+        <Rocket className="h-4 w-4 text-launch" />
         <h3 className="text-base font-semibold tracking-tight text-foreground">
           Review &amp; launch
         </h3>
@@ -155,7 +155,7 @@ export function LaunchPanel({ segment, message }: Props) {
         </div>
 
         {errorMsg && (
-          <div className="flex items-center gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">
+          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
             {errorMsg}
           </div>
@@ -177,14 +177,14 @@ export function LaunchPanel({ segment, message }: Props) {
             <div className="mt-3 flex items-center gap-2">
               <button
                 onClick={confirmLaunch}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950 transition-colors hover:bg-emerald-400"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-launch px-4 py-2 text-sm font-semibold text-background transition hover:bg-launch/90 active:scale-[0.98]"
               >
                 <Rocket className="h-4 w-4" />
                 Confirm &amp; launch
               </button>
               <button
                 onClick={() => setPhase("idle")}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground active:scale-[0.98]"
               >
                 Cancel
               </button>
@@ -194,7 +194,7 @@ export function LaunchPanel({ segment, message }: Props) {
           <button
             onClick={() => setPhase("confirming")}
             disabled={phase === "launching"}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-emerald-950 transition-colors hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-launch px-4 py-2.5 text-sm font-semibold text-background transition hover:bg-launch/90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {phase === "launching" ? (
               <>

@@ -23,19 +23,19 @@ const STATUS_STYLES: Record<
   CampaignStatus,
   { bg: string; text: string; dot?: string }
 > = {
-  DRAFT: { bg: "bg-zinc-800/60", text: "text-zinc-400" },
+  DRAFT: { bg: "bg-muted", text: "text-muted-foreground" },
   LAUNCHING: {
-    bg: "bg-blue-500/15",
-    text: "text-blue-400",
+    bg: "bg-brand/15",
+    text: "text-brand",
     dot: "animate-pulse",
   },
   SENDING: {
-    bg: "bg-blue-500/15",
-    text: "text-blue-400",
+    bg: "bg-brand/15",
+    text: "text-brand",
     dot: "animate-pulse",
   },
-  COMPLETED: { bg: "bg-emerald-500/15", text: "text-emerald-400" },
-  FAILED: { bg: "bg-red-500/15", text: "text-red-400" },
+  COMPLETED: { bg: "bg-launch/15", text: "text-launch" },
+  FAILED: { bg: "bg-destructive/15", text: "text-destructive" },
 };
 
 function StatusBadge({ status }: { status: CampaignStatus }) {
@@ -118,10 +118,12 @@ function OverviewStats({ data }: { data: OverviewResponse }) {
       {stats.map((s) => (
         <div
           key={s.label}
-          className="rounded-xl border border-border bg-card/50 px-4 py-3 backdrop-blur-sm"
+          className="rounded-xl border border-border bg-card/50 px-4 py-3 backdrop-blur-sm transition-colors hover:border-border/80 hover:bg-card/70"
         >
-          <p className="text-xs text-muted-foreground">{s.label}</p>
-          <p className="mt-1 text-lg font-semibold tracking-tight">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            {s.label}
+          </p>
+          <p className="mt-1 text-xl font-semibold tracking-tight tabular-nums">
             {s.value}
           </p>
         </div>
@@ -241,14 +243,14 @@ function ErrorState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="rounded-2xl bg-red-500/10 p-4">
-        <AlertCircle className="h-10 w-10 text-red-400" />
+      <div className="rounded-2xl bg-destructive/10 p-4">
+        <AlertCircle className="h-10 w-10 text-destructive" />
       </div>
       <h3 className="mt-4 text-lg font-medium">Failed to load campaigns</h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">{message}</p>
       <button
         onClick={onRetry}
-        className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
       >
         Retry
       </button>
@@ -265,7 +267,7 @@ export default function CampaignsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Campaigns</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Performance analytics across all campaigns
           </p>
@@ -279,7 +281,7 @@ export default function CampaignsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Campaigns</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
         </div>
         <ErrorState
           message={error instanceof Error ? error.message : "Unknown error"}
@@ -293,7 +295,7 @@ export default function CampaignsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Campaigns</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Performance analytics across all campaigns
           </p>
@@ -308,7 +310,7 @@ export default function CampaignsPage() {
       {/* Page header */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Campaigns</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Performance analytics across all campaigns
           </p>
@@ -316,8 +318,8 @@ export default function CampaignsPage() {
         {data.campaigns.some(
           (c) => c.status === "SENDING" || c.status === "LAUNCHING",
         ) && (
-          <div className="flex items-center gap-1.5 text-xs text-blue-400">
-            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-blue-400" />
+          <div className="flex items-center gap-1.5 text-xs font-medium text-brand">
+            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-brand" />
             Live
           </div>
         )}

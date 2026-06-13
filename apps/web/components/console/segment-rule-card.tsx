@@ -179,11 +179,11 @@ export function SegmentRuleCard({ toolCallId, result, onActive }: Props) {
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-sm backdrop-blur-sm">
+    <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-elevated backdrop-blur-sm">
       {/* Header band */}
-      <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-gradient-to-br from-sky-500/10 to-transparent px-5 py-4">
+      <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-gradient-to-br from-seg/10 to-transparent px-5 py-4">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-sky-400">
+          <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-seg">
             <Users className="h-3.5 w-3.5" />
             Audience segment
           </div>
@@ -207,7 +207,7 @@ export function SegmentRuleCard({ toolCallId, result, onActive }: Props) {
         <div className="shrink-0 text-right">
           <div className="flex items-center justify-end gap-1.5">
             {previewing && (
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-sky-400" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-seg" />
             )}
             <span className="text-3xl font-bold tabular-nums tracking-tight text-foreground">
               {count.toLocaleString()}
@@ -256,7 +256,7 @@ export function SegmentRuleCard({ toolCallId, result, onActive }: Props) {
         )}
 
         {previewError && (
-          <div className="flex items-center gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">
+          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
             {previewError}
           </div>
@@ -275,7 +275,7 @@ export function SegmentRuleCard({ toolCallId, result, onActive }: Props) {
                   className="inline-flex items-center gap-1.5 rounded-full bg-muted/50 py-1 pl-1 pr-2.5 text-xs text-foreground/80"
                   title={c.email}
                 >
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-sky-500/20 text-[10px] font-semibold text-sky-300">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-seg/15 text-[10px] font-semibold text-seg">
                     {c.firstName?.[0] ?? "?"}
                     {c.lastName?.[0] ?? ""}
                   </span>
@@ -297,14 +297,14 @@ export function SegmentRuleCard({ toolCallId, result, onActive }: Props) {
             <>
               <button
                 onClick={() => setEditing(false)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
               >
                 <Check className="h-3.5 w-3.5" />
                 Done
               </button>
               <button
                 onClick={resetRule}
-                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground active:scale-[0.98]"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 Reset
@@ -313,7 +313,7 @@ export function SegmentRuleCard({ toolCallId, result, onActive }: Props) {
           ) : (
             <button
               onClick={() => setEditing(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/50 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/50 px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent active:scale-[0.98]"
             >
               <Pencil className="h-3.5 w-3.5" />
               Edit rule

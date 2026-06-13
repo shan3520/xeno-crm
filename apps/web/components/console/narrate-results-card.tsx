@@ -17,9 +17,9 @@ export function NarrateResultsCard({
   const revenue = Number(attributedRevenue);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-sm backdrop-blur-sm">
-      <div className="flex items-center gap-2 border-b border-border/60 bg-gradient-to-br from-amber-500/10 to-transparent px-5 py-4">
-        <BarChart3 className="h-4 w-4 text-amber-400" />
+    <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-elevated backdrop-blur-sm">
+      <div className="flex items-center gap-2 border-b border-border/60 bg-gradient-to-br from-results/10 to-transparent px-5 py-4">
+        <BarChart3 className="h-4 w-4 text-results" />
         <h3 className="text-base font-semibold tracking-tight text-foreground">
           {result.headline}
         </h3>
@@ -37,7 +37,7 @@ export function NarrateResultsCard({
         </div>
 
         {revenue > 0 && (
-          <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+          <div className="flex items-center gap-2 rounded-lg bg-launch/10 px-3 py-2 text-sm text-launch">
             <TrendingUp className="h-4 w-4" />
             <span className="font-semibold tabular-nums">
               ₹{revenue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
@@ -47,7 +47,7 @@ export function NarrateResultsCard({
         )}
 
         <p className="flex items-start gap-2 text-sm text-muted-foreground">
-          <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
+          <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-results" />
           <span>
             <span className="font-medium text-foreground/80">Why: </span>
             {result.why}
@@ -55,7 +55,7 @@ export function NarrateResultsCard({
         </p>
 
         <div className="rounded-xl border border-border/60 bg-background/30 px-3 py-2.5 text-sm">
-          <span className="text-[11px] font-medium uppercase tracking-wide text-amber-400">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-results">
             Next
           </span>
           <p className="mt-0.5 text-foreground/90">{result.nextAction}</p>

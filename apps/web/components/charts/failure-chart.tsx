@@ -34,12 +34,12 @@ export function FailureChart({ data, className }: FailureChartProps) {
     return (
       <div
         className={cn(
-          "flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-xl border border-border bg-zinc-900/50 p-5 backdrop-blur-sm",
+          "flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card/40 p-5 backdrop-blur-sm",
           className,
         )}
       >
-        <CheckCircle2 className="h-10 w-10 text-emerald-500" />
-        <p className="text-sm font-medium text-emerald-400">
+        <CheckCircle2 className="h-10 w-10 text-launch" />
+        <p className="text-sm font-medium text-launch">
           All messages processed successfully
         </p>
       </div>
@@ -61,7 +61,7 @@ export function FailureChart({ data, className }: FailureChartProps) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-zinc-900/50 p-5 backdrop-blur-sm",
+        "rounded-xl border border-border bg-card/40 p-5 backdrop-blur-sm",
         className,
       )}
     >
@@ -77,13 +77,13 @@ export function FailureChart({ data, className }: FailureChartProps) {
           <CartesianGrid
             horizontal={false}
             strokeDasharray="3 3"
-            stroke="hsl(var(--border))"
+            stroke="var(--border)"
           />
           <XAxis type="number" hide />
           <YAxis
             type="category"
             dataKey="reason"
-            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+            tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             width={110}
@@ -98,7 +98,7 @@ export function FailureChart({ data, className }: FailureChartProps) {
             <LabelList
               dataKey="count"
               position="right"
-              fill="hsl(var(--muted-foreground))"
+              fill="var(--muted-foreground)"
               fontSize={12}
               formatter={(v: string | number | boolean | null | undefined) =>
                 new Intl.NumberFormat("en-IN").format(Number(v))

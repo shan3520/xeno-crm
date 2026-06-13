@@ -70,11 +70,11 @@ export function MessageDraftCard({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-sm backdrop-blur-sm">
+    <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-elevated backdrop-blur-sm">
       {/* Header band */}
-      <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-gradient-to-br from-violet-500/10 to-transparent px-5 py-4">
+      <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-gradient-to-br from-msg/10 to-transparent px-5 py-4">
         <div>
-          <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-violet-400">
+          <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-msg">
             <MessageSquareText className="h-3.5 w-3.5" />
             Message copy
           </div>
@@ -104,7 +104,7 @@ export function MessageDraftCard({
                 <button
                   key={t}
                   onClick={() => insertToken(t)}
-                  className="rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  className="rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition hover:bg-accent hover:text-foreground active:scale-95"
                 >
                   {`{{${t}}}`}
                 </button>
@@ -143,8 +143,8 @@ export function MessageDraftCard({
                   className={cn(
                     "rounded px-0.5",
                     s.known
-                      ? "bg-violet-500/15 text-violet-200"
-                      : "bg-red-500/15 text-red-300",
+                      ? "bg-msg/15 text-msg"
+                      : "bg-destructive/15 text-destructive",
                   )}
                   title={s.known ? `{{${s.token}}}` : `unknown token {{${s.token}}}`}
                 >
@@ -159,7 +159,7 @@ export function MessageDraftCard({
 
         {result.rationale && (
           <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-            <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-violet-400" />
+            <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-msg" />
             {result.rationale}
           </p>
         )}
