@@ -105,7 +105,7 @@ const REGISTRY: Record<string, ProviderSpec> = {
  * blank AI_PROVIDER_ORDER means "gemini" — today's behavior exactly.
  */
 export function providerChain(): ResolvedProvider[] {
-  const raw = process.env.AI_PROVIDER_ORDER?.trim() || "nvidia,gemini";
+  const raw = process.env.AI_PROVIDER_ORDER?.trim() || "groq,gemini";
   const chain: ResolvedProvider[] = [];
   for (const part of raw.split(",")) {
     const id = part.trim().toLowerCase();
