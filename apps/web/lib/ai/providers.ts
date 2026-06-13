@@ -94,7 +94,11 @@ const REGISTRY: Record<string, ProviderSpec> = {
         baseURL: "https://integrate.api.nvidia.com/v1",
         apiKey: process.env.NVIDIA_API_KEY ?? "",
       });
-      return nvidiaProvider(nvidiaModelId()) as SpecModel;
+      // .chat() forces the /v1/chat/completions endpoint. The default provider call now targets
+      // OpenAI's /v1/responses API, which NVIDIA NIM does NOT implement — it 404s ("404 page not
+      // found"), and a 404 isn't a fallthrough error, so the whole turn dies. NVIDIA only speaks
+      // chat-completions, so pin it explicitly.
+      return nvidiaProvider.chat(nvidiaModelId()) as SpecModel;
     },
   },
 };
