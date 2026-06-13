@@ -5,7 +5,7 @@
 #
 # Cross-service URLs are intentionally `sync: false` (you fill them in the dashboard AFTER
 # the first deploy, once the *.onrender.com URLs exist). Everything else is pinned here.
-# See DEPLOY.md for the exact values and the order to deploy in.
+# See docs/deployment.md for the exact values and the order to deploy in.
 #
 # NOTE: the send-worker and the reconcile sweep run IN-PROCESS inside crm-api — there is no
 # separate worker service. One deployable owns the queue, the worker, and the receipts API.
@@ -32,7 +32,7 @@ services:
       - key: NODE_ENV
         value: production
       # Neon POOLED connection string (the -pooler endpoint). Append
-      # ?sslmode=require&pgbouncer=true&connection_limit=5  — see DEPLOY.md.
+      # ?sslmode=require&pgbouncer=true&connection_limit=5  — see docs/deployment.md.
       - key: DATABASE_URL
         sync: false
       # OPTIONAL: Neon DIRECT (non-pooled) connection string, used only for migrate+seed.
