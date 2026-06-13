@@ -187,7 +187,7 @@ const draftMessage = tool({
         mode: "json",
         maxRetries: MAX_MODEL_RETRIES,
         schema: DraftMessageOutputSchema,
-        system: `${SYSTEM_PROMPT}\n\nWrite for channel ${channel}. Personalize ONLY with these tokens: ${MESSAGE_TOKENS.map((t) => `{{${t}}}`).join(", ")}.`,
+        system: `You are a CRM AI assistant drafting messages. Respond ONLY in valid JSON.\n\nWrite for channel ${channel}. Personalize ONLY with these tokens: ${MESSAGE_TOKENS.map((t) => `{{${t}}}`).join(", ")}.`,
         prompt: `Audience: ${segmentSummary}\nBrief: ${brief}`,
       });
 
@@ -229,7 +229,7 @@ const narrateResults = tool({
         mode: "json",
         maxRetries: MAX_MODEL_RETRIES,
         schema: NarrateResultsOutputSchema,
-        system: `${SYSTEM_PROMPT}\n\nGround every claim in the provided numbers — do not invent figures.`,
+        system: `You are a CRM AI assistant explaining campaign performance. Respond ONLY in valid JSON.\n\nGround every claim in the provided numbers — do not invent figures.`,
         prompt: `Campaign stats JSON:\n${JSON.stringify(stats)}`,
       });
 
