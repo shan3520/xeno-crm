@@ -9,8 +9,8 @@ import { GEMINI_MODEL_ID, geminiModel } from "@/lib/ai/provider";
  * Provider fallback chain — multiple free LLM providers tried IN ORDER until one serves the
  * turn. Resolution is config-driven:
  *
- *   AI_PROVIDER_ORDER  comma-separated provider ids, e.g. "gemini,groq". Defaults to
- *                      "gemini", so with no config the app is byte-for-byte Gemini-only.
+ *   AI_PROVIDER_ORDER  comma-separated provider ids tried in order, e.g. "groq,gemini".
+ *                      Defaults to "groq,gemini" — Groq primary, Gemini as the fallback.
  *   (per provider)     each provider reads its own key + model id from env (see REGISTRY);
  *                      a provider whose key is missing is SKIPPED, never an error.
  *
@@ -102,7 +102,7 @@ const REGISTRY: Record<string, ProviderSpec> = {
 /**
  * Resolve the ordered provider chain from AI_PROVIDER_ORDER. Unknown ids are skipped with a
  * warning; unconfigured providers (missing key) are skipped silently by design. An unset or
- * blank AI_PROVIDER_ORDER means "gemini" — today's behavior exactly.
+ * blank AI_PROVIDER_ORDER means "groq,gemini".
  */
 export function providerChain(): ResolvedProvider[] {
   const raw = process.env.AI_PROVIDER_ORDER?.trim() || "groq,gemini";

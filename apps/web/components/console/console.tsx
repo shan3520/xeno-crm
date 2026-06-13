@@ -279,7 +279,7 @@ export function Console() {
                   </p>
                   <p className="mt-0.5 text-sm text-muted-foreground">
                     {rateLimited
-                      ? "Gemini is rate-limited. Give it a moment, then retry."
+                      ? "The model is rate-limited right now. Give it a moment, then retry."
                       : "Something interrupted that turn."}
                   </p>
                   <button

@@ -40,11 +40,11 @@ describe("providerChain (env-driven resolution)", () => {
     vi.unstubAllEnvs();
   });
 
-  it("defaults to gemini-only when AI_PROVIDER_ORDER is unset or blank", () => {
+  it("defaults to groq,gemini when AI_PROVIDER_ORDER is unset or blank", () => {
     vi.stubEnv("GEMINI_API_KEY", "k");
     vi.stubEnv("GROQ_API_KEY", "k");
     vi.stubEnv("AI_PROVIDER_ORDER", "");
-    expect(providerChain().map((p) => p.id)).toEqual(["gemini"]);
+    expect(providerChain().map((p) => p.id)).toEqual(["groq", "gemini"]);
   });
 
   it("includes providers in the configured order", () => {

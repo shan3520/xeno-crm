@@ -1,4 +1,4 @@
-import { generateObject, generateText, tool } from "ai";
+import { generateText, tool } from "ai";
 import {
   AI_TOOL_NAMES,
   DraftMessageInputSchema,
@@ -13,9 +13,18 @@ import { crm } from "@/lib/crm-client";
 import { toToolFailure, type ToolFailure } from "@/lib/ai/errors";
 import { GEMINI_MODEL_ID } from "@/lib/ai/provider";
 import { providerChain, withFallback } from "@/lib/ai/providers";
-import { MESSAGE_TOKENS, SEGMENT_GEN_SYSTEM, SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
+import { MESSAGE_TOKENS, SEGMENT_GEN_SYSTEM } from "@/lib/ai/system-prompt";
 
-const MAX_MODEL_RETRIES = 3; // SDK does exponential backoff between these (covers 429s).
+/**
+ * SDK retries (exponential backoff) per tool sub-call. Kept LOW on purpose: every retry
+ * re-sends the full prompt, and when the free-tier providers are quota-exhausted (Groq's
+ * 6k TPM, Gemini's daily quota) retrying just burns more of an already-spent token budget
+ * and pushes the turn toward the 50s abort. One retry covers a momentary blip; a real
+ * exhaustion then falls through withFallback to the next provider, and finally degrades to a
+ * typed "rate-limited, retry" surface — instead of spinning. The orchestrator (route.ts)
+ * adds its own retry layer on top of this.
+ */
+const MAX_MODEL_RETRIES = 1;
 
 /**
  * Resolve the provider fallback chain for ONE tool call and track which provider actually
@@ -171,8 +180,15 @@ const generateSegmentRule = tool({
 });
 
 /**
- * draft_message — channel-appropriate copy with the documented {{tokens}}. Output is validated
- * against the @xeno/shared schema before returning.
+ * draft_message — channel-appropriate copy with the documented {{tokens}}.
+ *
+ * Generated via generateText + manual JSON parse (NOT generateObject), matching
+ * generate_segment_rule. The Vercel AI SDK's generateObject sends a `response_format`
+ * (json_schema, or json_object for mode:"json") that Groq's llama-3.3-70b rejects with a 400
+ * — a hard error, not a fallback trigger — which is why the segment path was migrated off it.
+ * draft_message and narrate_results now share that Groq-safe pattern: a tight, prompt-only
+ * JSON instruction (no heavy SYSTEM_PROMPT — that lives on the orchestrator turn, re-sending
+ * it here just doubles the token cost against the TPM ceiling), parse, then strict zod gate.
  */
 const draftMessage = tool({
   description:
@@ -182,14 +198,26 @@ const draftMessage = tool({
     const started = Date.now();
     try {
       const { model, servedTag } = resolveModel();
-      const { object, usage } = await generateObject({
+      const { text, usage } = await generateText({
         model,
-        mode: "json",
         maxRetries: MAX_MODEL_RETRIES,
-        schema: DraftMessageOutputSchema,
-        system: `You are a CRM AI assistant drafting messages. Respond ONLY in valid JSON.\n\nWrite for channel ${channel}. Personalize ONLY with these tokens: ${MESSAGE_TOKENS.map((t) => `{{${t}}}`).join(", ")}.`,
-        prompt: `Audience: ${segmentSummary}\nBrief: ${brief}`,
+        temperature: 0.6,
+        maxOutputTokens: 500,
+        system: `You draft ${channel} campaign copy for Looms, a D2C apparel brand.\n\nOutput ONLY a single JSON object — no prose, no markdown fences — with EXACTLY these keys:\n{"channel": "${channel}", "body": string, "rationale": string}\n\nPersonalize ONLY with these tokens, in double braces: ${MESSAGE_TOKENS.map((t) => `{{${t}}}`).join(", ")}.\n${channel === "SMS" ? "SMS: keep it short (aim under 160 characters)." : "EMAIL: you may include a subject-like opening line."}`,
+        prompt: `Audience: ${segmentSummary}\nBrief: ${brief}\n\nRespond with the JSON object only.`,
       });
+
+      const parsed = DraftMessageOutputSchema.safeParse(parseJsonObject(text));
+      if (!parsed.success) {
+        await logTask("MESSAGE_DRAFT", servedTag(), Date.now() - started, usage, { brief, channel, segmentSummary }, {
+          validationError: parsed.error.message,
+        });
+        return {
+          ok: false,
+          error: "failed",
+          message: `The drafted message failed validation: ${parsed.error.message}`,
+        } satisfies ToolFailure;
+      }
 
       await logTask(
         "MESSAGE_DRAFT",
@@ -197,13 +225,13 @@ const draftMessage = tool({
         Date.now() - started,
         usage,
         { brief, channel, segmentSummary },
-        object,
+        parsed.data,
       );
       return {
         ok: true as const,
-        channel: object.channel,
-        body: object.body,
-        rationale: object.rationale,
+        channel: parsed.data.channel,
+        body: parsed.data.body,
+        rationale: parsed.data.rationale,
       };
     } catch (err) {
       return toToolFailure(err);
@@ -224,14 +252,27 @@ const narrateResults = tool({
     try {
       const stats = await crm.campaignStats(campaignId);
       const { model, servedTag } = resolveModel();
-      const { object, usage } = await generateObject({
+      // generateText + parse, not generateObject — see draft_message for why (Groq json mode).
+      const { text, usage } = await generateText({
         model,
-        mode: "json",
         maxRetries: MAX_MODEL_RETRIES,
-        schema: NarrateResultsOutputSchema,
-        system: `You are a CRM AI assistant explaining campaign performance. Respond ONLY in valid JSON.\n\nGround every claim in the provided numbers — do not invent figures.`,
-        prompt: `Campaign stats JSON:\n${JSON.stringify(stats)}`,
+        temperature: 0,
+        maxOutputTokens: 500,
+        system: `You explain campaign performance for Looms, a D2C apparel brand.\n\nOutput ONLY a single JSON object — no prose, no markdown fences — with EXACTLY these keys:\n{"headline": string, "whatHappened": string, "why": string, "nextAction": string}\n\nGround every claim in the provided numbers — do not invent figures.`,
+        prompt: `Campaign stats JSON:\n${JSON.stringify(stats)}\n\nRespond with the JSON object only.`,
       });
+
+      const parsed = NarrateResultsOutputSchema.safeParse(parseJsonObject(text));
+      if (!parsed.success) {
+        await logTask("RESULTS_NARRATIVE", servedTag(), Date.now() - started, usage, { campaignId }, {
+          validationError: parsed.error.message,
+        });
+        return {
+          ok: false,
+          error: "failed",
+          message: `The results narrative failed validation: ${parsed.error.message}`,
+        } satisfies ToolFailure;
+      }
 
       await logTask(
         "RESULTS_NARRATIVE",
@@ -239,11 +280,11 @@ const narrateResults = tool({
         Date.now() - started,
         usage,
         { campaignId },
-        object,
+        parsed.data,
       );
       return {
         ok: true as const,
-        ...object,
+        ...parsed.data,
         stats: {
           funnel: stats.funnel,
           rates: stats.rates,

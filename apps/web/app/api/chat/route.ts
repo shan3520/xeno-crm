@@ -12,8 +12,13 @@ export const maxDuration = 60; // Vercel Hobby ceiling — keep turns to <=2 too
 
 /** Allow up to 2 tool-call rounds + a final text step before stopping. */
 const MAX_STEPS = 3;
-/** SDK retries (exponential backoff) before a 429 is surfaced as a typed error. */
-const MAX_MODEL_RETRIES = 3;
+/**
+ * SDK retries (exponential backoff) before a 429 is surfaced as a typed error. Kept modest:
+ * against quota-exhausted free tiers each retry re-sends the full turn and eats more of the
+ * token budget (and clock, toward STREAM_TIMEOUT_MS) without changing the outcome. After these,
+ * withFallback tries the next provider, then the turn degrades to a retry banner.
+ */
+const MAX_MODEL_RETRIES = 2;
 /**
  * Hard ceiling for the whole model turn, safely under Vercel's maxDuration (60s). Without it,
  * a stalled Gemini call (free-tier quota backoff) rides until Vercel hard-kills the function —
@@ -49,9 +54,8 @@ function messageText(m: IncomingMessage): string {
 }
 
 export async function POST(req: Request): Promise<Response> {
-  // Ordered fallback chain (default: gemini only — identical to the pre-fallback behavior).
-  // An empty chain means no provider in AI_PROVIDER_ORDER has its key set; for the default
-  // (gemini-only) order we keep the exact pre-fallback error message.
+  // Ordered fallback chain (default: "groq,gemini" — see providerChain()). An empty chain
+  // means no provider listed in AI_PROVIDER_ORDER has its key set on the server.
   const chain = providerChain();
   if (chain.length === 0) {
     return Response.json(
@@ -99,7 +103,7 @@ export async function POST(req: Request): Promise<Response> {
     .map((m) => ({ role: m.role as "user" | "assistant", content: messageText(m) }));
 
   const result = streamText({
-    // With a single-entry chain this IS the bare gemini model; with more entries a
+    // A single-entry chain is just that provider's model unwrapped; with more entries a
     // rate-limited/unavailable primary falls through to the next provider transparently.
     model: withFallback(chain, (served) => {
       if (served.id !== chain[0]!.id) {
