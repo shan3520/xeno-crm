@@ -144,11 +144,85 @@ export function isProviderUnavailable(err: unknown): boolean {
 }
 
 /**
+ * Per-provider response budget. A SLOW provider (not erroring, just not responding — e.g.
+ * NVIDIA NIM's free tier under latency) would otherwise hold the whole turn until the route's
+ * overall STREAM_TIMEOUT and then die with no fallback. This budget bounds how long any one
+ * provider may take before we move on; it must be comfortably smaller than the route's overall
+ * timeout (50s) so at least two providers can be tried within a single turn.
+ */
+const providerTimeoutMs = (): number => Number(process.env.AI_PROVIDER_TIMEOUT_MS) || 22_000;
+
+/** A provider was too SLOW (vs. erroring). Treated like an availability error: fall through. */
+export class ProviderTimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ProviderTimeoutError";
+  }
+}
+
+/** Reject if `promise` doesn't settle within `ms`, with a ProviderTimeoutError. */
+async function withTimeout<T>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new ProviderTimeoutError(`${label} (>${ms}ms)`)), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/**
+ * For streaming: require the FIRST chunk within `ms`, then pass the rest through untouched.
+ * We can't put a flat timeout on a stream (it would cut off a healthy long response), and a
+ * deadline buried inside the returned stream couldn't trigger fallback (the call already
+ * returned). So we await the first read here — inside the fallback's try — and only after it
+ * arrives do we hand back a stream reconstructed from {first chunk, …remainder}. A first-chunk
+ * timeout throws ProviderTimeoutError so withFallback moves to the next provider.
+ */
+async function guardStreamStart<C, R extends { stream: ReadableStream<C> }>(
+  resultPromise: PromiseLike<R>,
+  ms: number,
+  label: string,
+): Promise<R> {
+  const result = await withTimeout(resultPromise, ms, `${label} connect`);
+  const reader = result.stream.getReader();
+  let first: ReadableStreamReadResult<C>;
+  try {
+    first = await withTimeout(reader.read(), ms, `${label} first chunk`);
+  } catch (err) {
+    reader.cancel().catch(() => undefined); // abort the slow upstream before falling through
+    throw err;
+  }
+  const stream = new ReadableStream<C>({
+    start(controller) {
+      if (first.done) controller.close();
+      else controller.enqueue(first.value);
+    },
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+        if (done) controller.close();
+        else controller.enqueue(value);
+      } catch (err) {
+        controller.error(err);
+      }
+    },
+    cancel(reason) {
+      reader.cancel(reason).catch(() => undefined);
+    },
+  });
+  return { ...result, stream };
+}
+
+/**
  * Wrap a provider chain as ONE AI SDK model that tries each entry in order. Works for both
  * doGenerate (generateText/generateObject in the tools) and doStream (the chat route): a
  * provider that rejects the CALL with an availability error (the way 429s surface — before
- * any stream output) falls through to the next; the last error is thrown if all fail.
- * An error arriving mid-stream after output started cannot be retried and surfaces as today.
+ * any stream output) OR is too SLOW to start (ProviderTimeoutError, see guardStreamStart /
+ * providerTimeoutMs) falls through to the next; the last error is thrown if all fail.
+ * An error arriving mid-stream AFTER the first chunk cannot be retried and surfaces as today.
  *
  * `onServe` fires with the entry that actually served the call — use it to record the
  * provider+model in AiTaskLog and to log fallbacks.
@@ -177,7 +251,10 @@ export function withFallback(
         return result;
       } catch (err) {
         lastError = err;
-        if (i === chain.length - 1 || !isProviderUnavailable(err)) throw err;
+        // Fall through on availability errors (429/5xx/auth/network) AND on a too-slow provider
+        // (ProviderTimeoutError) — both mean "this provider can't serve the turn, try the next".
+        const recoverable = isProviderUnavailable(err) || err instanceof ProviderTimeoutError;
+        if (i === chain.length - 1 || !recoverable) throw err;
         console.warn(
           `[ai/fallback] provider "${entry.id}" unavailable (${
             err instanceof Error ? err.message : String(err)
@@ -196,8 +273,10 @@ export function withFallback(
     // matters if a future prompt embeds URLs, in which case the SDK falls back to
     // downloading them — safe for every provider.
     supportedUrls: primary.model.supportedUrls,
-    doGenerate: (options) => attempt((m) => m.doGenerate(options)),
-    doStream: (options) => attempt((m) => m.doStream(options)),
+    doGenerate: (options) =>
+      attempt((m) => withTimeout(m.doGenerate(options), providerTimeoutMs(), "doGenerate")),
+    doStream: (options) =>
+      attempt((m) => guardStreamStart(m.doStream(options), providerTimeoutMs(), "doStream")),
   };
 }
 
