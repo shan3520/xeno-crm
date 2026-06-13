@@ -5,6 +5,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { AppConfigService } from "../config/app-config.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { backoffDelayMs, LEASE_MS } from "./backoff";
+import { isTransientStatus } from "./failure-classification";
 
 /** Per-send HTTP ceiling. Must stay well under LEASE_MS so a send finishes inside its lease. */
 const SEND_TIMEOUT_MS = 10_000;
@@ -29,7 +30,12 @@ interface ClaimedComm {
 
 type SendOutcome =
   | { ok: true; providerMessageId: string }
-  | { ok: false; reason: string };
+  /**
+   * `retryable` marks a TRANSIENT infrastructure failure (stub cold-start 429/5xx, network,
+   * timeout) vs a PERMANENT one (4xx, contract violation). Transient failures must not consume
+   * the dead-letter budget — see markFailure.
+   */
+  | { ok: false; reason: string; retryable: boolean };
 
 /**
  * The send-queue worker core. The Communication row is the work item: this claims QUEUED
@@ -86,7 +92,7 @@ export class SendWorkerService {
       if (outcome.ok) {
         if (await this.markSent(comm, outcome.providerMessageId)) sent++;
       } else {
-        const result = await this.markFailure(comm, outcome.reason);
+        const result = await this.markFailure(comm, outcome.reason, outcome.retryable);
         if (result === "retry") retried++;
         else if (result === "dead") failed++;
       }
@@ -152,16 +158,26 @@ export class SendWorkerService {
       });
 
       if (!res.ok) {
-        return { ok: false, reason: `channel-stub responded ${res.status}` };
+        // 429 (throttle) and 5xx (incl. Render cold-start 502/503/504) are transient — the
+        // stub is waking or overloaded, not refusing the request. Retry without burning the
+        // dead-letter budget. Other 4xx (bad request, etc.) are permanent.
+        return {
+          ok: false,
+          reason: `channel-stub responded ${res.status}`,
+          retryable: isTransientStatus(res.status),
+        };
       }
       const body = (await res.json()) as { providerMessageId?: unknown };
       if (typeof body.providerMessageId !== "string" || body.providerMessageId.length === 0) {
-        return { ok: false, reason: "channel-stub response missing providerMessageId" };
+        // A 2xx with no id is a contract violation, not a transient blip — don't loop forever.
+        return { ok: false, reason: "channel-stub response missing providerMessageId", retryable: false };
       }
       return { ok: true, providerMessageId: body.providerMessageId };
     } catch (err) {
+      // Network failure / DNS / connection refused / AbortController timeout — all transient
+      // (the stub is unreachable or slow to wake), so retry rather than dead-letter.
       const reason = err instanceof Error ? err.message : "unknown send error";
-      return { ok: false, reason: `send failed: ${reason}` };
+      return { ok: false, reason: `send failed: ${reason}`, retryable: true };
     } finally {
       clearTimeout(timer);
     }
@@ -199,15 +215,25 @@ export class SendWorkerService {
    * Handle a send failure: retry-with-backoff while attempts remain, else dead-letter.
    * Returns 'retry' | 'dead' | 'noop'. All updates are guarded on status = 'QUEUED' so a
    * concurrently-resolved comm is left untouched.
+   *
+   * `retryable` (transient infra: stub cold-start 429/5xx, network, timeout) does NOT consume
+   * the dead-letter budget: such a comm always retries with capped exponential backoff and
+   * never moves to FAILED. This is the fix for a cold channel-stub dead-lettering a whole
+   * batch — the worker's short backoff (~1+2+4+8s) is otherwise spent before a ~50s Render
+   * cold start finishes, so all WORKER_MAX_ATTEMPTS are burned on 429/503 and the batch dies.
+   * attemptCount still increments for observability; the backoff cap (MAX_BACKOFF_MS) bounds
+   * the retry rate while the stub is down. Only PERMANENT failures (4xx, contract violations)
+   * count toward workerMaxAttempts and dead-letter.
    */
   private async markFailure(
     comm: ClaimedComm,
     reason: string,
+    retryable: boolean,
   ): Promise<"retry" | "dead" | "noop"> {
     const now = new Date();
     const attemptCount = comm.attemptCount + 1;
 
-    if (attemptCount < this.config.workerMaxAttempts) {
+    if (retryable || attemptCount < this.config.workerMaxAttempts) {
       const nextAttemptAt = new Date(now.getTime() + backoffDelayMs(attemptCount));
       const upd = await this.prisma.communication.updateMany({
         where: { id: comm.id, status: "QUEUED" },
