@@ -196,3 +196,18 @@ export function withFallback(
     doStream: (options) => attempt((m) => m.doStream(options)),
   };
 }
+
+/**
+ * One-time boot health log (runs at cold start on module import). Reports which provider keys
+ * are present and the configured order — ids only, never key values. This is the startup half
+ * of cascade-detection: if e.g. NVIDIA_API_KEY isn't set, "nvidia" won't appear here and can't
+ * be in any request's chain, no matter what AI_PROVIDER_ORDER lists.
+ */
+const bootConfigured = Object.values(REGISTRY)
+  .filter((spec) => spec.isConfigured())
+  .map((spec) => spec.id);
+console.log(
+  `[ai/providers] boot — keys present: ${bootConfigured.join(",") || "(none)"} | order: ${
+    process.env.AI_PROVIDER_ORDER?.trim() || "groq,gemini (default)"
+  }`,
+);

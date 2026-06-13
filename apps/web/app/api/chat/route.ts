@@ -68,6 +68,11 @@ export async function POST(req: Request): Promise<Response> {
       { status: 500 },
     );
   }
+  // Health signal: the providers actually IN PLAY this request (ids only, never keys). A provider
+  // whose key is missing is silently dropped from the chain — so if you expect e.g. "nvidia,groq,
+  // gemini" but the log shows "groq,gemini", that env key isn't set. Pairs with the per-turn
+  // "served by" log below to expose a bad-key cascade (key present but 401/403 → falls through).
+  console.log(`[/api/chat] provider chain: ${chain.map((c) => c.id).join(",")}`);
 
   let body: { messages?: IncomingMessage[]; threadId?: string };
   try {
@@ -106,9 +111,11 @@ export async function POST(req: Request): Promise<Response> {
     // A single-entry chain is just that provider's model unwrapped; with more entries a
     // rate-limited/unavailable primary falls through to the next provider transparently.
     model: withFallback(chain, (served) => {
-      if (served.id !== chain[0]!.id) {
-        console.log(`[/api/chat] turn served by fallback provider "${served.id}" (${served.tag})`);
-      }
+      // Always log who served — not just on fallback — so logs show the real provider per turn.
+      const viaFallback = served.id !== chain[0]!.id;
+      console.log(
+        `[/api/chat] turn served by "${served.id}" (${served.tag})${viaFallback ? " [FALLBACK]" : ""}`,
+      );
     }),
     system: SYSTEM_PROMPT,
     messages: modelMessages,
