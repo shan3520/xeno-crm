@@ -14,6 +14,11 @@
 :root {
   --radius: 0.75rem;
 
+  /* Entrance easings — confident exponential deceleration, never bounce/elastic. */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
   /* Light values are defined for completeness; the app runs dark (html.dark). */
   --background: oklch(0.99 0.002 264);
   --foreground: oklch(0.2 0.01 264);
@@ -30,6 +35,10 @@
   --accent: oklch(0.95 0.006 264);
   --accent-foreground: oklch(0.25 0.01 264);
   --destructive: oklch(0.58 0.22 25);
+  /* Destructive tuned to read as TEXT on a faint destructive tint (this app has no solid
+   * destructive fills — every destructive surface is a /5–/15 tint). Darker than --destructive
+   * here because light-mode text sits on a near-white bg. Revisit if a solid red button is added. */
+  --destructive-foreground: oklch(0.5 0.2 25);
   --border: oklch(0.9 0.005 264);
   --input: oklch(0.9 0.005 264);
   --ring: oklch(0.55 0.16 274);
@@ -87,6 +96,10 @@
   --accent: oklch(0.3 0.009 264);
   --accent-foreground: oklch(0.98 0.004 264);
   --destructive: oklch(0.64 0.2 25);
+  /* A lighter coral-red for destructive TEXT on dark: --destructive (L 0.64) only reaches
+   * ~3.7:1 on a destructive tint at small sizes; this clears WCAG AA (≈4.6:1) on bg-destructive/15
+   * and ≥/10. Charts and large alert icons keep the saturated --destructive. */
+  --destructive-foreground: oklch(0.83 0.13 25);
 
   --border: oklch(1 0 0 / 9%);
   --input: oklch(1 0 0 / 13%);
@@ -152,6 +165,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -213,6 +227,43 @@
   }
 }
 
+/* ── Scroll / load reveal ─────────────────────────────────────────────────
+ * Content is visible by DEFAULT. The hidden start state is gated behind `.reveal-on`,
+ * which a tiny inline script (layout.tsx) adds to <html> only when JS runs AND
+ * prefers-reduced-motion is off. So no-JS, reduced-motion, crawlers, and pre-hydration
+ * all render fully visible: the reveal is pure enhancement and can never ship a section
+ * blank. The component (components/landing/reveal.tsx) only toggles `.is-revealed`.
+ */
+.reveal-on [data-reveal] {
+  opacity: 0;
+  transform: translateY(1rem);
+  transition:
+    opacity 0.7s var(--ease-out-expo),
+    transform 0.7s var(--ease-out-expo);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+/* "Focus pull": the hero artifact previews resolve from soft to sharp, as if the AI's
+ * proposal is coming into view. Blur is bounded to two small isolated cards (perf-safe). */
+.reveal-on [data-reveal="focus"] {
+  transform: translateY(1rem) scale(0.985);
+  filter: blur(6px);
+  transition:
+    opacity 0.8s var(--ease-out-expo),
+    transform 0.8s var(--ease-out-expo),
+    filter 0.8s var(--ease-out-expo);
+  will-change: opacity, transform, filter;
+}
+
+.reveal-on [data-reveal].is-revealed {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  /* Drop the compositor hint the instant the one-shot entrance finishes. */
+  will-change: auto;
+}
+
 /* Reduced motion is not optional: collapse transitions/animations and smooth scroll for users
  * who ask for it. Spinners (.animate-spin) are kept so "working…" still reads. */
 @media (prefers-reduced-motion: reduce) {
@@ -225,6 +276,30 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Touch devices (primary pointer is touch/stylus) get comfortable 44px hit areas.
+ * Scoped to pointer:coarse so the dense pointer:fine console stays exactly as designed;
+ * mouse-primary laptops (even with a touchscreen) report fine and are untouched. min-height
+ * is inert on inline links, so only the real controls grow. */
+@media (pointer: coarse) {
+  button,
+  a[href],
+  [role="button"],
+  [role="tab"],
+  select,
+  textarea,
+  summary,
+  input:not([type="checkbox"]):not([type="radio"]) {
+    min-height: 44px;
+  }
+  /* Icon-only square buttons (send, stop) also need the horizontal dimension. Text and
+   * full-width buttons already exceed 44px, so this only bites where it should. */
+  button,
+  [role="button"],
+  [role="tab"] {
+    min-width: 44px;
   }
 }
 

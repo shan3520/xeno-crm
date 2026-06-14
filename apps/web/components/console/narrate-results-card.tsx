@@ -20,9 +20,9 @@ export function NarrateResultsCard({
     <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-elevated">
       <div className="flex items-center gap-2 border-b border-border/60 bg-gradient-to-br from-results/10 to-transparent px-5 py-4">
         <BarChart3 className="h-4 w-4 text-results" />
-        <h3 className="text-base font-semibold tracking-tight text-foreground">
+        <h2 className="text-base font-semibold tracking-tight text-foreground">
           {result.headline}
-        </h3>
+        </h2>
       </div>
 
       <div className="space-y-4 px-5 py-4">

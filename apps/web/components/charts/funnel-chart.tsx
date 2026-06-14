@@ -25,18 +25,26 @@ interface FunnelDatum {
 }
 
 export function FunnelChart({ funnel, className }: FunnelChartProps) {
+  // Color carries meaning here, not decoration. The healthy pipeline shares one calm hue —
+  // the drop-off is read from bar length, so the in-between stages don't need separate colors.
+  // Only the two outcomes that matter earn their own: Converted (the win) and Failed (the loss).
   const data: FunnelDatum[] = [
     { stage: "Queued", value: funnel.queued, color: "var(--chart-1)" },
-    { stage: "Sent", value: funnel.sent, color: "var(--chart-2)" },
-    { stage: "Delivered", value: funnel.delivered, color: "var(--chart-3)" },
-    { stage: "Opened", value: funnel.opened, color: "var(--chart-4)" },
-    { stage: "Read", value: funnel.read, color: "var(--chart-5)" },
+    { stage: "Sent", value: funnel.sent, color: "var(--chart-1)" },
+    { stage: "Delivered", value: funnel.delivered, color: "var(--chart-1)" },
+    { stage: "Opened", value: funnel.opened, color: "var(--chart-1)" },
+    { stage: "Read", value: funnel.read, color: "var(--chart-1)" },
     { stage: "Clicked", value: funnel.clicked, color: "var(--chart-1)" },
-    { stage: "Converted", value: funnel.converted, color: "var(--chart-2)" },
+    { stage: "Converted", value: funnel.converted, color: "var(--launch)" },
     { stage: "Failed", value: funnel.failed, color: "var(--destructive)" },
   ];
 
   const isEmpty = data.every((d) => d.value === 0);
+
+  const nf = new Intl.NumberFormat("en-IN");
+  const summary = `Delivery funnel. ${data
+    .map((d) => `${d.stage}: ${nf.format(d.value)}`)
+    .join(", ")}.`;
 
   if (isEmpty) {
     return (
@@ -58,9 +66,11 @@ export function FunnelChart({ funnel, className }: FunnelChartProps) {
         className,
       )}
     >
-      <h3 className="mb-4 text-sm font-medium text-muted-foreground">
-        Delivery Funnel
-      </h3>
+      <h2 className="mb-4 text-sm font-medium text-muted-foreground">
+        Delivery funnel
+      </h2>
+      {/* The SVG carries no accessible text; expose the figures as one labeled image. */}
+      <div role="img" aria-label={summary}>
       <ResponsiveContainer width="100%" height={320}>
         <BarChart
           data={data}
@@ -97,6 +107,7 @@ export function FunnelChart({ funnel, className }: FunnelChartProps) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      </div>
     </div>
   );
 }

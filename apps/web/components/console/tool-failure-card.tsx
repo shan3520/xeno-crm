@@ -23,9 +23,9 @@ export function ToolFailureCard({
       : TriangleAlert;
 
   const title = rateLimited
-    ? "The model is busy"
+    ? "The assistant is busy"
     : failure.error === "validation_failed"
-      ? "That rule didn’t pass validation"
+      ? "That rule isn’t valid yet"
       : "Something went wrong";
 
   return (
@@ -35,7 +35,7 @@ export function ToolFailureCard({
           <Icon className="h-4 w-4 text-warning" />
         </div>
         <div className="min-w-0 flex-1">
-          <h4 className="text-sm font-semibold text-foreground">{title}</h4>
+          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {failure.message}
           </p>

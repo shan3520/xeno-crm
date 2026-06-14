@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Eye, MessageSquareText, Sparkles } from "lucide-react";
+import { AlertTriangle, Eye, MessageSquareText, Sparkles } from "lucide-react";
 import type { Channel } from "@xeno/shared";
 
 import { cn } from "@/lib/utils";
@@ -50,6 +50,11 @@ export function MessageDraftCard({
     attributes: { city: "Mumbai", tier: "Gold" },
   };
   const spans = renderSpans(body, previewCustomer);
+  // Tokens the marketer typed that don't match a real field (e.g. a typo like {{frstName}}).
+  // These send as literal text, so the warning has to be visible, not a hover-only title.
+  const unknownTokens = Array.from(
+    new Set(spans.filter((s) => s.token && !s.known).map((s) => s.token)),
+  );
 
   function insertToken(token: string) {
     const el = textareaRef.current;
@@ -78,9 +83,9 @@ export function MessageDraftCard({
             <MessageSquareText className="h-3.5 w-3.5" />
             Message copy
           </div>
-          <h3 className="mt-1 text-base font-semibold tracking-tight text-foreground">
+          <h2 className="mt-1 text-base font-semibold tracking-tight text-foreground">
             Draft for review
-          </h3>
+          </h2>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">
           <ChannelIcon className="h-3.5 w-3.5" />
@@ -96,6 +101,7 @@ export function MessageDraftCard({
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={isShortForm ? 3 : 5}
+            aria-label={`${meta.label} message body`}
             className="w-full resize-y rounded-xl border border-border bg-background/60 px-3 py-2.5 text-sm leading-relaxed text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           />
           <div className="mt-1.5 flex items-center justify-between">
@@ -130,7 +136,7 @@ export function MessageDraftCard({
             <Eye className="h-3.5 w-3.5" />
             Preview · {previewCustomer.firstName} {previewCustomer.lastName}
             {!sampleCustomer && (
-              <span className="font-normal normal-case text-muted-foreground/70">
+              <span className="font-normal normal-case text-muted-foreground">
                 (example)
               </span>
             )}
@@ -144,7 +150,7 @@ export function MessageDraftCard({
                     "rounded px-0.5",
                     s.known
                       ? "bg-msg/15 text-msg"
-                      : "bg-destructive/15 text-destructive",
+                      : "bg-destructive/15 text-destructive-foreground",
                   )}
                   title={s.known ? `{{${s.token}}}` : `unknown token {{${s.token}}}`}
                 >
@@ -155,6 +161,16 @@ export function MessageDraftCard({
               ),
             )}
           </p>
+          {unknownTokens.length > 0 && (
+            <p className="mt-2 flex items-start gap-1.5 text-[11px] text-warning">
+              <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
+              <span>
+                {unknownTokens.map((t) => `{{${t}}}`).join(", ")} won&apos;t be
+                filled in; unknown fields send exactly as written. Pick one from
+                the buttons above.
+              </span>
+            </p>
+          )}
         </div>
 
         {result.rationale && (

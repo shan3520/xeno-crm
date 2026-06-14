@@ -127,6 +127,14 @@ export function TimelineChart({ data, className }: TimelineChartProps) {
 
   const shortDuration = isShortDuration(data);
 
+  const nf = new Intl.NumberFormat("en-IN");
+  const summary = `Event timeline across ${data.length} ${
+    data.length === 1 ? "interval" : "intervals"
+  }. ${EVENTS.map((e) => {
+    const total = data.reduce((sum, b) => sum + (Number(b[e.key]) || 0), 0);
+    return `${e.label}: ${nf.format(total)}`;
+  }).join(", ")}.`;
+
   return (
     <div
       className={cn(
@@ -134,9 +142,9 @@ export function TimelineChart({ data, className }: TimelineChartProps) {
         className,
       )}
     >
-      <h3 className="mb-4 text-sm font-medium text-muted-foreground">
-        Event Timeline
-      </h3>
+      <h2 className="mb-4 text-sm font-medium text-muted-foreground">
+        Event timeline
+      </h2>
 
       {/* Legend */}
       <div className="mb-3 flex flex-wrap gap-4">
@@ -153,6 +161,8 @@ export function TimelineChart({ data, className }: TimelineChartProps) {
         ))}
       </div>
 
+      {/* The SVG carries no accessible text; expose the totals as one labeled image. */}
+      <div role="img" aria-label={summary}>
       <ResponsiveContainer width="100%" height={300}>
         <AreaChart
           data={data}
@@ -206,6 +216,7 @@ export function TimelineChart({ data, className }: TimelineChartProps) {
           ))}
         </AreaChart>
       </ResponsiveContainer>
+      </div>
     </div>
   );
 }

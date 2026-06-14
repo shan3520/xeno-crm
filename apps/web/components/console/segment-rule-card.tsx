@@ -82,6 +82,7 @@ function LeafEditor({
         onChange={(e) =>
           onChange({ ...leaf, field: e.target.value as SegmentField })
         }
+        aria-label="Field"
         className="rounded-md border border-border bg-background px-2 py-1 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
       >
         {SEGMENT_FIELDS.map((f) => (
@@ -95,6 +96,7 @@ function LeafEditor({
         onChange={(e) =>
           onChange({ ...leaf, operator: e.target.value as SegmentOperator })
         }
+        aria-label="Operator"
         className="rounded-md border border-border bg-background px-2 py-1 text-xs text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
       >
         {SEGMENT_OPERATORS.map((op) => (
@@ -108,6 +110,7 @@ function LeafEditor({
         onChange={(e) =>
           onChange({ ...leaf, value: coerceValue(e.target.value, leaf.value) })
         }
+        aria-label="Value"
         className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         placeholder={Array.isArray(leaf.value) ? "a, b, c" : "value"}
       />
@@ -194,9 +197,9 @@ export function SegmentRuleCard({ toolCallId, result, onActive }: Props) {
               className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1 text-base font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
             />
           ) : (
-            <h3 className="mt-1 truncate text-base font-semibold tracking-tight text-foreground">
+            <h2 className="mt-1 truncate text-base font-semibold tracking-tight text-foreground">
               {name}
-            </h3>
+            </h2>
           )}
           <p className="mt-0.5 text-sm text-muted-foreground">
             {result.description}
@@ -239,7 +242,7 @@ export function SegmentRuleCard({ toolCallId, result, onActive }: Props) {
               />
             ))}
             <p className="text-[11px] text-muted-foreground">
-              Adjust the AI-emitted rule, and the audience re-counts live.
+              Adjust the rule and the audience re-counts as you type.
             </p>
           </div>
         ) : (
@@ -256,7 +259,7 @@ export function SegmentRuleCard({ toolCallId, result, onActive }: Props) {
         )}
 
         {previewError && (
-          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
             {previewError}
           </div>

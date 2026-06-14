@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 
@@ -25,6 +25,12 @@ export const metadata: Metadata = {
     "AI-native mini CRM: state your intent in plain English, review editable segment, message, and launch cards.",
 };
 
+// viewport-fit: cover exposes the env(safe-area-inset-*) values so the bottom-docked
+// composer can clear the home indicator on notched phones (see console.tsx).
+export const viewport: Viewport = {
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
@@ -33,6 +39,16 @@ export default function RootLayout({
   return (
     <html lang="en" className={`dark ${sans.variable} ${mono.variable}`}>
       <body className="bg-background text-foreground antialiased">
+        {/* Arm scroll/load reveals before first paint, but only when JS runs AND motion is
+            allowed. Without this class, [data-reveal] content stays fully visible — so no-JS,
+            reduced-motion, and crawlers never see a hidden (blank) section. Runs synchronously
+            ahead of the children below, so there's no flash of unstyled/visible content. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('reveal-on')}catch(e){}",
+          }}
+        />
         <Providers>
           {children}
           <BackendStatusBanner />

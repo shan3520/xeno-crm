@@ -155,7 +155,7 @@ export function LaunchPanel({ segment, message }: Props) {
         </div>
 
         {errorMsg && (
-          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
             {errorMsg}
           </div>

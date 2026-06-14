@@ -12,11 +12,13 @@ interface StatsGridProps {
 }
 
 interface MetricCard {
+  /** Funnel stage this tile reports. */
   label: string;
-  count: number;
+  /** The judgment metric — leads the tile. */
   rate: number;
-  rateLabel: string;
-  colorVar: string;
+  /** Absolute volume behind the rate — supporting line. */
+  count: number;
+  countLabel: string;
   /** When true, the metric doesn't apply to this channel (e.g. opens on SMS). */
   notApplicable?: boolean;
   naLabel?: string;
@@ -31,41 +33,42 @@ function formatRate(rate: number): string {
 }
 
 export function StatsGrid({ funnel, rates, channel, className }: StatsGridProps) {
+  // This strip is the persistent KPI read across all three tabs: the rate a marketer judges
+  // each funnel transition by, with the raw volume as support. The FunnelChart below owns the
+  // absolute counts and the drop-off shape, so the two never report the same number as a
+  // headline. (Sent is a denominator — it lives in the funnel and the page-header audience.)
+  //
   // SMS has no open-tracking pixel, so the stub never emits an OPENED event for it
-  // (see channel-stub lifecycle: supportsOpenTracking = channel !== "SMS"). Showing a
-  // dead "0 / 0.0%" reads like a bug; surface "n/a" instead.
+  // (channel-stub lifecycle: supportsOpenTracking = channel !== "SMS"). A dead "0.0%" reads
+  // like a bug; surface "n/a" instead.
   const opensNotApplicable = channel === "SMS";
 
   const cards: MetricCard[] = [
     {
-      label: "Sent",
-      count: funnel.sent,
-      rate: rates.deliveryRate,
-      rateLabel: "delivery",
-      colorVar: "var(--chart-1)",
-    },
-    {
       label: "Delivered",
-      count: funnel.delivered,
       rate: rates.deliveryRate,
-      rateLabel: "delivery",
-      colorVar: "var(--chart-2)",
+      count: funnel.delivered,
+      countLabel: "delivered",
     },
     {
       label: "Opened",
-      count: funnel.opened,
       rate: rates.openRate,
-      rateLabel: "open rate",
-      colorVar: "var(--chart-3)",
+      count: funnel.opened,
+      countLabel: "opened",
       notApplicable: opensNotApplicable,
       naLabel: "n/a for SMS",
     },
     {
       label: "Clicked",
-      count: funnel.clicked,
       rate: rates.clickRate,
-      rateLabel: "click rate",
-      colorVar: "var(--chart-4)",
+      count: funnel.clicked,
+      countLabel: "clicked",
+    },
+    {
+      label: "Converted",
+      rate: rates.conversionRate,
+      count: funnel.converted,
+      countLabel: "converted",
     },
   ];
 
@@ -79,14 +82,8 @@ export function StatsGrid({ funnel, rates, channel, className }: StatsGridProps)
       {cards.map((card) => (
         <div
           key={card.label}
-          className="relative overflow-hidden rounded-xl border border-border bg-card/40 p-5 transition-colors hover:bg-card/60"
+          className="rounded-xl border border-border bg-card/40 p-5 transition-colors hover:bg-card/60"
         >
-          {/* Accent top line */}
-          <div
-            className="absolute inset-x-0 top-0 h-0.5"
-            style={{ backgroundColor: card.colorVar }}
-          />
-
           <p className="text-sm font-medium text-muted-foreground">
             {card.label}
           </p>
@@ -94,36 +91,25 @@ export function StatsGrid({ funnel, rates, channel, className }: StatsGridProps)
           {card.notApplicable ? (
             <>
               <p
-                className="mt-2 text-3xl font-bold tracking-tight text-muted-foreground/40"
-                style={{ fontVariantNumeric: "tabular-nums" }}
+                className="mt-2 text-3xl font-bold tabular-nums tracking-tight text-muted-foreground/60"
                 title="Open tracking isn't available on SMS"
               >
                 —
               </p>
-
               <p className="mt-1 text-sm text-muted-foreground">
                 {card.naLabel}
               </p>
             </>
           ) : (
             <>
-              <p
-                className="mt-2 text-3xl font-bold tracking-tight text-foreground transition-all duration-500"
-                style={{
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {formatNumber(card.count)}
+              <p className="mt-2 text-3xl font-bold tabular-nums tracking-tight text-foreground transition-colors duration-500">
+                {formatRate(card.rate)}
               </p>
-
               <p className="mt-1 text-sm text-muted-foreground">
-                <span
-                  className="font-semibold"
-                  style={{ color: card.colorVar }}
-                >
-                  {formatRate(card.rate)}
+                <span className="font-medium tabular-nums text-foreground/80">
+                  {formatNumber(card.count)}
                 </span>{" "}
-                {card.rateLabel}
+                {card.countLabel}
               </p>
             </>
           )}

@@ -83,6 +83,7 @@ export function Console() {
     useChat({ transport });
 
   const [input, setInput] = useState("");
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const [activeSegment, setActiveSegment] = useState<ActiveSegment | null>(null);
   const [activeMessage, setActiveMessage] = useState<ActiveMessage | null>(null);
   // A turn that hung or ended with nothing — shows a retry banner distinct from `error`.
@@ -98,6 +99,16 @@ export function Console() {
   );
 
   const busy = status === "submitted" || status === "streaming";
+
+  // Auto-grow the composer with its content so multi-line drafts are visible as they're typed,
+  // capped by the textarea's max-h (it scrolls past that). Runs on every input change, including
+  // the reset to "" after send. Pure height set, no transition — nothing for reduced-motion to do.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [input]);
 
   // ── Thread persistence ──
   // Restore the snapshot once after mount (effect, not render, to avoid hydration mismatch).
@@ -281,12 +292,12 @@ export function Console() {
                 <div className="rounded-2xl border border-warning/30 bg-warning/5 px-5 py-4">
                   <p className="text-sm font-medium text-foreground">
                     {rateLimited
-                      ? "The model is busy right now"
+                      ? "The assistant is busy right now"
                       : "The assistant hit a snag"}
                   </p>
                   <p className="mt-0.5 text-sm text-muted-foreground">
                     {rateLimited
-                      ? "The model is rate-limited right now. Give it a moment, then retry."
+                      ? "Too many requests came in at once. Wait a few seconds, then retry."
                       : "Something interrupted that turn."}
                   </p>
                   <button
@@ -305,8 +316,8 @@ export function Console() {
                     That turn went quiet
                   </p>
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    The model didn’t respond in time. It’s likely rate-limited;
-                    give it a moment, then retry.
+                    The assistant didn’t respond in time. It may be handling too
+                    many requests; give it a few seconds, then retry.
                   </p>
                   <button
                     onClick={retryTurn}
@@ -332,10 +343,11 @@ export function Console() {
       </main>
 
       {/* ── Composer ── */}
-      <div className="shrink-0 border-t border-border/60 bg-background/80 px-4 py-3 backdrop-blur-md">
+      <div className="shrink-0 border-t border-border/60 bg-background/80 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md">
         <div className="mx-auto w-full max-w-3xl">
           <div className="flex items-end gap-2 rounded-2xl border border-border bg-card/50 px-3 py-2 transition focus-within:border-brand/40 focus-within:ring-2 focus-within:ring-brand/30">
             <textarea
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -345,8 +357,9 @@ export function Console() {
                 }
               }}
               rows={1}
+              aria-label="Describe the audience you want to reach"
               placeholder="Describe the audience you want to reach…"
-              className="max-h-40 min-h-[24px] flex-1 resize-none bg-transparent py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+              className="max-h-40 min-h-[24px] flex-1 resize-none overflow-y-auto bg-transparent py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
             />
             {busy ? (
               <button
@@ -358,7 +371,7 @@ export function Console() {
                 title="Stop generating"
                 aria-label="Stop generating"
               >
-                <Square className="h-3.5 w-3.5" />
+                <Square className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
             ) : (
               <button
@@ -368,7 +381,7 @@ export function Console() {
                 title="Send message"
                 aria-label="Send message"
               >
-                <ArrowUp className="h-4 w-4" />
+                <ArrowUp className="h-4 w-4" aria-hidden="true" />
               </button>
             )}
           </div>
@@ -390,15 +403,15 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }) {
       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/15 text-brand ring-1 ring-inset ring-brand/25">
         <Sparkles className="h-6 w-6" />
       </div>
-      <h1 className="mt-5 text-2xl font-semibold tracking-tight text-balance text-foreground">
+      <h2 className="mt-5 text-2xl font-semibold tracking-tight text-balance text-foreground">
         What audience do you want to reach?
-      </h1>
+      </h2>
       <p className="mt-2 max-w-md text-sm leading-relaxed text-pretty text-muted-foreground">
         Describe it in plain English. I’ll turn it into an editable segment, a
         message draft, and a launch you control.
       </p>
       <div className="mt-7 grid w-full max-w-xl gap-2">
-        <p className="px-1 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
+        <p className="px-1 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           Try one of these
         </p>
         {EXAMPLE_PROMPTS.map((p) => (

@@ -1,7 +1,8 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
+import dynamic from "next/dynamic";
 import {
   AlertCircle,
   ArrowLeft,
@@ -17,11 +18,27 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useCampaignStats } from "@/hooks/use-campaign-stats";
 import { StatsGrid } from "@/components/charts/stats-grid";
-import { FunnelChart } from "@/components/charts/funnel-chart";
-import { TimelineChart } from "@/components/charts/timeline-chart";
-import { FailureChart } from "@/components/charts/failure-chart";
 import { RevenueCard } from "@/components/charts/revenue-card";
+import { ChartSkeleton } from "@/components/charts/chart-skeleton";
 import type { CampaignStatus, Channel } from "@xeno/shared";
+
+// Recharts is ~120 kB and only ever renders client-side (the page is client-rendered and the
+// charts measure the DOM via ResponsiveContainer). Splitting it into a lazy chunk keeps it out
+// of the route's initial bundle: the header + StatsGrid (the headline numbers) paint and become
+// interactive immediately, the funnel streams in behind a same-size skeleton (no layout shift),
+// and the Timeline/Failure chunks aren't fetched at all until their tab is opened.
+const FunnelChart = dynamic(
+  () => import("@/components/charts/funnel-chart").then((m) => m.FunnelChart),
+  { ssr: false, loading: () => <ChartSkeleton height={320} label="Delivery funnel" /> },
+);
+const TimelineChart = dynamic(
+  () => import("@/components/charts/timeline-chart").then((m) => m.TimelineChart),
+  { ssr: false, loading: () => <ChartSkeleton height={300} label="Event timeline" /> },
+);
+const FailureChart = dynamic(
+  () => import("@/components/charts/failure-chart").then((m) => m.FailureChart),
+  { ssr: false, loading: () => <ChartSkeleton height={240} label="Failure breakdown" /> },
+);
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
@@ -41,7 +58,7 @@ const STATUS_STYLES: Record<
     dot: "animate-pulse",
   },
   COMPLETED: { bg: "bg-launch/15", text: "text-launch" },
-  FAILED: { bg: "bg-destructive/15", text: "text-destructive" },
+  FAILED: { bg: "bg-destructive/15", text: "text-destructive-foreground" },
 };
 
 function StatusBadge({ status }: { status: CampaignStatus }) {
@@ -80,35 +97,9 @@ function formatDate(iso: string | null): string {
   });
 }
 
-// ─── Tab component ──────────────────────────────────────────────────
+// ─── Tabs ───────────────────────────────────────────────────────────
 
 type Tab = "overview" | "timeline" | "failures";
-
-function TabButton({
-  tab,
-  active,
-  label,
-  onClick,
-}: {
-  tab: Tab;
-  active: boolean;
-  label: string;
-  onClick: (t: Tab) => void;
-}) {
-  return (
-    <button
-      onClick={() => onClick(tab)}
-      className={cn(
-        "rounded-lg px-4 py-2 text-sm font-medium transition active:scale-[0.98]",
-        active
-          ? "bg-card text-foreground shadow-sm ring-1 ring-border"
-          : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-      )}
-    >
-      {label}
-    </button>
-  );
-}
 
 // ─── Loading skeleton ───────────────────────────────────────────────
 
@@ -154,7 +145,7 @@ function ErrorState({
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
       <div className="rounded-2xl bg-destructive/10 p-4">
-        <AlertCircle className="h-10 w-10 text-destructive" />
+        <AlertCircle className="h-10 w-10 text-destructive" aria-hidden="true" />
       </div>
       <h3 className="mt-4 text-lg font-medium">
         Failed to load campaign stats
@@ -178,6 +169,7 @@ export default function CampaignDetailPage() {
   const { data, isLoading, isError, error, refetch, isFetching } =
     useCampaignStats(campaignId);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const isLive =
     data?.campaign.status === "SENDING" ||
@@ -190,7 +182,7 @@ export default function CampaignDetailPage() {
           href="/campaigns"
           className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           All campaigns
         </Link>
         <DetailSkeleton />
@@ -205,7 +197,7 @@ export default function CampaignDetailPage() {
           href="/campaigns"
           className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           All campaigns
         </Link>
         <ErrorState
@@ -222,6 +214,29 @@ export default function CampaignDetailPage() {
     label: campaign.channel,
   };
   const ChannelIcon = channelMeta.icon;
+
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "overview", label: "Overview" },
+    { id: "timeline", label: "Timeline" },
+    {
+      id: "failures",
+      label: `Failures${funnel.failed > 0 ? ` (${funnel.failed})` : ""}`,
+    },
+  ];
+
+  // WAI-ARIA tabs: roving tabindex with arrow/Home/End, focus follows selection.
+  function onTabKeyDown(e: KeyboardEvent<HTMLButtonElement>, index: number) {
+    const last = tabs.length - 1;
+    let next = index;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") next = index === last ? 0 : index + 1;
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = index === 0 ? last : index - 1;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = last;
+    else return;
+    e.preventDefault();
+    setActiveTab(tabs[next].id);
+    tabRefs.current[next]?.focus();
+  }
 
   return (
     <div className="space-y-6">
@@ -244,7 +259,7 @@ export default function CampaignDetailPage() {
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={campaign.status} />
             <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
-              <ChannelIcon className="h-3 w-3" />
+              <ChannelIcon className="h-3 w-3" aria-hidden="true" />
               {channelMeta.label}
             </span>
             <span className="text-xs text-muted-foreground">
@@ -265,7 +280,10 @@ export default function CampaignDetailPage() {
             </div>
           )}
           {isFetching && !isLoading && (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <Loader2
+              className="h-4 w-4 animate-spin text-muted-foreground"
+              aria-label="Refreshing stats"
+            />
           )}
         </div>
       </div>
@@ -274,37 +292,50 @@ export default function CampaignDetailPage() {
       <StatsGrid funnel={funnel} rates={rates} channel={campaign.channel} />
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-lg bg-muted/30 p-1">
-        <TabButton
-          tab="overview"
-          active={activeTab === "overview"}
-          label="Overview"
-          onClick={setActiveTab}
-        />
-        <TabButton
-          tab="timeline"
-          active={activeTab === "timeline"}
-          label="Timeline"
-          onClick={setActiveTab}
-        />
-        <TabButton
-          tab="failures"
-          active={activeTab === "failures"}
-          label={`Failures${funnel.failed > 0 ? ` (${funnel.failed})` : ""}`}
-          onClick={setActiveTab}
-        />
+      <div
+        role="tablist"
+        aria-label="Campaign analytics views"
+        className="flex gap-1 rounded-lg bg-muted/30 p-1"
+      >
+        {tabs.map((t, i) => {
+          const active = activeTab === t.id;
+          return (
+            <button
+              key={t.id}
+              ref={(el) => {
+                tabRefs.current[i] = el;
+              }}
+              role="tab"
+              id={`tab-${t.id}`}
+              aria-selected={active}
+              aria-controls={`panel-${t.id}`}
+              tabIndex={active ? 0 : -1}
+              onClick={() => setActiveTab(t.id)}
+              onKeyDown={(e) => onTabKeyDown(e, i)}
+              className={cn(
+                "rounded-lg px-4 py-2 text-sm font-medium transition active:scale-[0.98]",
+                active
+                  ? "bg-card text-foreground shadow-sm ring-1 ring-border"
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+              )}
+            >
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab content */}
       {activeTab === "overview" && (
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div
+          role="tabpanel"
+          id="panel-overview"
+          aria-labelledby="tab-overview"
+          tabIndex={0}
+          className="grid gap-4 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:grid-cols-3"
+        >
           <div className="lg:col-span-2">
-            <div className="rounded-xl border border-border bg-card/30 p-6">
-              <h3 className="mb-4 text-sm font-medium text-muted-foreground">
-                Campaign Funnel
-              </h3>
-              <FunnelChart funnel={funnel} />
-            </div>
+            <FunnelChart funnel={funnel} />
           </div>
           <div>
             <RevenueCard
@@ -317,19 +348,25 @@ export default function CampaignDetailPage() {
       )}
 
       {activeTab === "timeline" && (
-        <div className="rounded-xl border border-border bg-card/30 p-6">
-          <h3 className="mb-4 text-sm font-medium text-muted-foreground">
-            Event Timeline
-          </h3>
+        <div
+          role="tabpanel"
+          id="panel-timeline"
+          aria-labelledby="tab-timeline"
+          tabIndex={0}
+          className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
           <TimelineChart data={timeline} />
         </div>
       )}
 
       {activeTab === "failures" && (
-        <div className="rounded-xl border border-border bg-card/30 p-6">
-          <h3 className="mb-4 text-sm font-medium text-muted-foreground">
-            Failure Breakdown
-          </h3>
+        <div
+          role="tabpanel"
+          id="panel-failures"
+          aria-labelledby="tab-failures"
+          tabIndex={0}
+          className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
           <FailureChart data={failureBreakdown} />
         </div>
       )}

@@ -40,7 +40,7 @@ export function FailureChart({ data, className }: FailureChartProps) {
           className,
         )}
       >
-        <CheckCircle2 className="h-10 w-10 text-launch" />
+        <CheckCircle2 className="h-10 w-10 text-launch" aria-hidden="true" />
         <p className="text-sm font-medium text-launch">
           All messages processed successfully
         </p>
@@ -60,6 +60,11 @@ export function FailureChart({ data, className }: FailureChartProps) {
 
   const dynamicHeight = Math.max(200, chartData.length * 45 + 40);
 
+  const nf = new Intl.NumberFormat("en-IN");
+  const summary = `Failure breakdown. ${data
+    .map((d) => `${d.reason}: ${nf.format(d.count)}`)
+    .join(", ")}.`;
+
   return (
     <div
       className={cn(
@@ -67,9 +72,11 @@ export function FailureChart({ data, className }: FailureChartProps) {
         className,
       )}
     >
-      <h3 className="mb-4 text-sm font-medium text-muted-foreground">
-        Failure Breakdown
-      </h3>
+      <h2 className="mb-4 text-sm font-medium text-muted-foreground">
+        Failure breakdown
+      </h2>
+      {/* The SVG carries no accessible text; expose the figures as one labeled image. */}
+      <div role="img" aria-label={summary}>
       <ResponsiveContainer width="100%" height={dynamicHeight}>
         <BarChart
           data={chartData}
@@ -109,6 +116,7 @@ export function FailureChart({ data, className }: FailureChartProps) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      </div>
     </div>
   );
 }

@@ -1,10 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   ArrowRight,
-  Loader2,
   Mail,
   MessageSquare,
   Phone,
@@ -35,7 +35,7 @@ const STATUS_STYLES: Record<
     dot: "animate-pulse",
   },
   COMPLETED: { bg: "bg-launch/15", text: "text-launch" },
-  FAILED: { bg: "bg-destructive/15", text: "text-destructive" },
+  FAILED: { bg: "bg-destructive/15", text: "text-destructive-foreground" },
 };
 
 function StatusBadge({ status }: { status: CampaignStatus }) {
@@ -65,7 +65,7 @@ const CHANNEL_ICONS: Record<Channel, typeof Mail> = {
 
 function ChannelIcon({ channel }: { channel: Channel }) {
   const Icon = CHANNEL_ICONS[channel] ?? Radio;
-  return <Icon className="h-4 w-4 text-muted-foreground" />;
+  return <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />;
 }
 
 function pct(value: number): string {
@@ -143,9 +143,18 @@ function CampaignRow({ campaign }: { campaign: CampaignSummaryRow }) {
       onClick={() => router.push(`/campaigns/${campaign.id}`)}
     >
       <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <ChannelIcon channel={campaign.channel} />
-          <span className="font-medium">{campaign.name}</span>
+          {/* The real, keyboard-reachable navigation. The row onClick is a mouse-only
+              convenience layered on top; stopPropagation avoids a redundant double-push. */}
+          <Link
+            href={`/campaigns/${campaign.id}`}
+            onClick={(e) => e.stopPropagation()}
+            title={campaign.name}
+            className="max-w-[14rem] truncate font-medium text-foreground transition-colors hover:text-brand sm:max-w-xs"
+          >
+            {campaign.name}
+          </Link>
         </div>
       </td>
       <td className="px-4 py-3">
@@ -174,9 +183,83 @@ function CampaignRow({ campaign }: { campaign: CampaignSummaryRow }) {
         {formatDate(campaign.launchedAt)}
       </td>
       <td className="px-4 py-3 text-right">
-        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+        <ArrowRight
+          className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+          aria-hidden="true"
+        />
       </td>
     </tr>
+  );
+}
+
+// ─── Campaign card (small screens) ──────────────────────────────────
+// The 8-column table can't survive a phone, so below md the same rows reflow to a
+// stacked, fully-tappable card: identity + status up top, the four headline metrics in
+// a 2x2 grid, audience and launch date as footer meta. No column scrolls off-screen.
+
+function CardStat({
+  label,
+  value,
+  muted,
+}: {
+  label: string;
+  value: string;
+  muted?: boolean;
+}) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+      <dd
+        className={cn(
+          "mt-0.5 truncate tabular-nums",
+          muted ? "text-muted-foreground" : "font-medium text-foreground",
+        )}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+function CampaignCard({ campaign }: { campaign: CampaignSummaryRow }) {
+  const isSms = campaign.channel === "SMS";
+  return (
+    <Link
+      href={`/campaigns/${campaign.id}`}
+      className="block rounded-xl border border-border bg-card/40 p-4 transition-colors hover:bg-card/60 active:scale-[0.99]"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <ChannelIcon channel={campaign.channel} />
+          <span className="truncate font-medium text-foreground">
+            {campaign.name}
+          </span>
+        </div>
+        <StatusBadge status={campaign.status} />
+      </div>
+
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+        <CardStat label="Sent" value={campaign.sent.toLocaleString()} />
+        <CardStat label="Delivered" value={campaign.delivered.toLocaleString()} />
+        <CardStat
+          label="Open rate"
+          value={isSms ? "n/a" : pct(campaign.openRate)}
+          muted={isSms}
+        />
+        <CardStat label="Revenue" value={formatRevenue(campaign.attributedRevenue)} />
+      </dl>
+
+      <div className="mt-3 flex items-center justify-between gap-3 border-t border-border/50 pt-2.5 text-xs text-muted-foreground">
+        <span className="tabular-nums">
+          {campaign.audienceSize.toLocaleString()} audience
+        </span>
+        <span className="shrink-0 tabular-nums">
+          {formatDate(campaign.launchedAt)}
+        </span>
+      </div>
+    </Link>
   );
 }
 
@@ -197,8 +280,28 @@ function TableSkeleton() {
           </div>
         ))}
       </div>
-      {/* Table skeletons */}
-      <div className="rounded-xl border border-border bg-card/30 overflow-hidden">
+      {/* Card skeletons (small screens) */}
+      <div className="space-y-3 md:hidden">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="rounded-xl border border-border bg-card/40 p-4">
+            <div className="flex items-center justify-between">
+              <div className="h-4 w-40 animate-pulse rounded bg-muted" />
+              <div className="h-5 w-20 animate-pulse rounded-full bg-muted" />
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
+              {Array.from({ length: 4 }).map((_, j) => (
+                <div key={j}>
+                  <div className="h-2.5 w-12 animate-pulse rounded bg-muted" />
+                  <div className="mt-1.5 h-4 w-16 animate-pulse rounded bg-muted" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Table skeletons (md and up) */}
+      <div className="hidden overflow-hidden rounded-xl border border-border bg-card/30 md:block">
         <div className="divide-y divide-border/50">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex items-center gap-4 px-4 py-3.5">
@@ -221,13 +324,20 @@ function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
       <div className="rounded-2xl bg-muted/30 p-4">
-        <Radio className="h-10 w-10 text-muted-foreground" />
+        <Radio className="h-10 w-10 text-muted-foreground" aria-hidden="true" />
       </div>
       <h3 className="mt-4 text-lg font-medium">No campaigns yet</h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-        Campaigns will appear here once they&apos;re created through the AI
-        console. Each campaign&apos;s performance will be tracked in real-time.
+        Describe an audience in the console and launch your first campaign. Its
+        delivery and conversion show up here as messages send.
       </p>
+      <Link
+        href="/console"
+        className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+      >
+        Open the console
+        <ArrowRight className="h-4 w-4" aria-hidden="true" />
+      </Link>
     </div>
   );
 }
@@ -244,7 +354,7 @@ function ErrorState({
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
       <div className="rounded-2xl bg-destructive/10 p-4">
-        <AlertCircle className="h-10 w-10 text-destructive" />
+        <AlertCircle className="h-10 w-10 text-destructive" aria-hidden="true" />
       </div>
       <h3 className="mt-4 text-lg font-medium">Failed to load campaigns</h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">{message}</p>
@@ -269,7 +379,7 @@ export default function CampaignsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Performance analytics across all campaigns
+            Delivery and conversion for every campaign you&apos;ve launched
           </p>
         </div>
         <TableSkeleton />
@@ -297,7 +407,7 @@ export default function CampaignsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Performance analytics across all campaigns
+            Delivery and conversion for every campaign you&apos;ve launched
           </p>
         </div>
         <EmptyState />
@@ -312,7 +422,7 @@ export default function CampaignsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Performance analytics across all campaigns
+            Delivery and conversion for every campaign you&apos;ve launched
           </p>
         </div>
         {data.campaigns.some(
@@ -328,37 +438,45 @@ export default function CampaignsPage() {
       {/* Overview stats */}
       <OverviewStats data={data} />
 
-      {/* Campaign table */}
-      <div className="rounded-xl border border-border bg-card/30 overflow-hidden">
+      {/* Campaign list — stacked cards on small screens, dense table from md up */}
+      <div className="space-y-3 md:hidden">
+        {data.campaigns.map((c) => (
+          <CampaignCard key={c.id} campaign={c} />
+        ))}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-xl border border-border bg-card/30 md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/20 text-left">
-                <th className="px-4 py-3 font-medium text-muted-foreground">
+                <th scope="col" className="px-4 py-3 font-medium text-muted-foreground">
                   Campaign
                 </th>
-                <th className="px-4 py-3 font-medium text-muted-foreground">
+                <th scope="col" className="px-4 py-3 font-medium text-muted-foreground">
                   Status
                 </th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                <th scope="col" className="px-4 py-3 text-right font-medium text-muted-foreground">
                   Audience
                 </th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                <th scope="col" className="px-4 py-3 text-right font-medium text-muted-foreground">
                   Sent
                 </th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                <th scope="col" className="px-4 py-3 text-right font-medium text-muted-foreground">
                   Delivered
                 </th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                <th scope="col" className="px-4 py-3 text-right font-medium text-muted-foreground">
                   Open Rate
                 </th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                <th scope="col" className="px-4 py-3 text-right font-medium text-muted-foreground">
                   Revenue
                 </th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                <th scope="col" className="px-4 py-3 text-right font-medium text-muted-foreground">
                   Launched
                 </th>
-                <th className="px-4 py-3" />
+                <th scope="col" className="px-4 py-3">
+                  <span className="sr-only">Open campaign</span>
+                </th>
               </tr>
             </thead>
             <tbody>
