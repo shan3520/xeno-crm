@@ -58,7 +58,7 @@ export function MobileNav() {
       {open && (
         <div
           id={panelId}
-          className="absolute inset-x-0 top-16 border-b border-border bg-background/95 shadow-elevated backdrop-blur-md animate-in fade-in slide-in-from-top-1 duration-150"
+          className="absolute inset-x-0 top-16 border-b border-border bg-background shadow-elevated animate-in fade-in slide-in-from-top-1 duration-150"
         >
           <nav className="mx-auto flex max-w-[1200px] flex-col px-6 py-2">
             {LINKS.map((l) => (

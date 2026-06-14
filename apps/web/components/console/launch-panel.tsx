@@ -39,6 +39,8 @@ export function LaunchPanel({ segment, message }: Props) {
   const meta = channelMeta(message.channel);
   const ChannelIcon = meta.icon;
   const audience = segment.count;
+  // An empty segment has nothing to send — block the launch instead of creating a no-op campaign.
+  const canLaunch = audience > 0;
 
   async function confirmLaunch() {
     setPhase("launching");
@@ -167,13 +169,17 @@ export function LaunchPanel({ segment, message }: Props) {
             <div className="flex items-start gap-2">
               <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
               <p className="text-sm text-foreground/90">
-                This will queue{" "}
+                This will queue up to{" "}
                 <strong className="font-semibold">
                   {audience.toLocaleString()} {meta.label}
                 </strong>{" "}
                 messages and start sending immediately. This can&apos;t be undone.
               </p>
             </div>
+            <p className="mt-2 pl-6 text-xs text-muted-foreground">
+              Anyone in the audience without a valid {meta.label.toLowerCase()}{" "}
+              address is skipped automatically — the final count is shown once sending starts.
+            </p>
             <div className="mt-3 flex items-center gap-2">
               <button
                 onClick={confirmLaunch}
@@ -191,23 +197,32 @@ export function LaunchPanel({ segment, message }: Props) {
             </div>
           </div>
         ) : (
-          <button
-            onClick={() => setPhase("confirming")}
-            disabled={phase === "launching"}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-launch px-4 py-2.5 text-sm font-semibold text-background transition hover:bg-launch/90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {phase === "launching" ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Launching…
-              </>
-            ) : (
-              <>
-                <Rocket className="h-4 w-4" />
-                Launch campaign
-              </>
+          <>
+            {!canLaunch && (
+              <div className="flex items-center gap-2 rounded-lg bg-warning/5 px-3 py-2 text-xs text-muted-foreground">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-warning" />
+                This segment matches no customers. Edit the rule to reach an
+                audience before launching.
+              </div>
             )}
-          </button>
+            <button
+              onClick={() => setPhase("confirming")}
+              disabled={phase === "launching" || !canLaunch}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-launch px-4 py-2.5 text-sm font-semibold text-background transition hover:bg-launch/90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {phase === "launching" ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Launching…
+                </>
+              ) : (
+                <>
+                  <Rocket className="h-4 w-4" />
+                  Launch campaign
+                </>
+              )}
+            </button>
+          </>
         )}
       </div>
     </div>

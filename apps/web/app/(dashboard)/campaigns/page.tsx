@@ -201,10 +201,12 @@ function CardStat({
   label,
   value,
   muted,
+  title,
 }: {
   label: string;
   value: string;
   muted?: boolean;
+  title?: string;
 }) {
   return (
     <div className="min-w-0">
@@ -212,6 +214,7 @@ function CardStat({
         {label}
       </dt>
       <dd
+        title={title}
         className={cn(
           "mt-0.5 truncate tabular-nums",
           muted ? "text-muted-foreground" : "font-medium text-foreground",
@@ -247,6 +250,7 @@ function CampaignCard({ campaign }: { campaign: CampaignSummaryRow }) {
           label="Open rate"
           value={isSms ? "n/a" : pct(campaign.openRate)}
           muted={isSms}
+          title={isSms ? "Open tracking isn't available on SMS" : undefined}
         />
         <CardStat label="Revenue" value={formatRevenue(campaign.attributedRevenue)} />
       </dl>

@@ -228,7 +228,11 @@ export function Console() {
     <div className="flex h-[100dvh] flex-col bg-background">
       {/* ── Header ── */}
       <header className="flex shrink-0 items-center justify-between border-b border-border/60 bg-background/70 px-5 py-3 backdrop-blur-md">
-        <div className="flex items-center gap-2.5">
+        <Link
+          href="/"
+          title="Back to home"
+          className="flex items-center gap-2.5 rounded-lg transition-opacity hover:opacity-80"
+        >
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand/15 text-brand ring-1 ring-inset ring-brand/25">
             <Wand2 className="h-4 w-4" />
           </div>
@@ -240,7 +244,7 @@ export function Console() {
               State your intent: review, edit, launch.
             </p>
           </div>
-        </div>
+        </Link>
         <nav className="flex items-center gap-2">
           {messages.length > 0 && (
             <button
@@ -399,7 +403,7 @@ export function Console() {
 
 function EmptyState({ onPick }: { onPick: (text: string) => void }) {
   return (
-    <div className="flex flex-col items-center px-2 py-16 text-center">
+    <div className="flex min-h-[calc(100dvh-13rem)] flex-col items-center justify-center px-2 py-12 text-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/15 text-brand ring-1 ring-inset ring-brand/25">
         <Sparkles className="h-6 w-6" />
       </div>

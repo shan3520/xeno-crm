@@ -203,7 +203,7 @@ const draftMessage = tool({
         maxRetries: MAX_MODEL_RETRIES,
         temperature: 0.6,
         maxOutputTokens: 500,
-        system: `You draft ${channel} campaign copy for Looms, a D2C apparel brand.\n\nOutput ONLY a single JSON object — no prose, no markdown fences — with EXACTLY these keys:\n{"channel": "${channel}", "body": string, "rationale": string}\n\nPersonalize ONLY with these tokens, in double braces: ${MESSAGE_TOKENS.map((t) => `{{${t}}}`).join(", ")}.\n${channel === "SMS" ? "SMS: keep it short (aim under 160 characters)." : "EMAIL: you may include a subject-like opening line."}`,
+        system: `You draft ${channel} campaign copy for Looms, a D2C apparel brand.\n\nOutput ONLY a single JSON object — no prose, no markdown fences — with EXACTLY these keys:\n{"channel": "${channel}", "body": string, "rationale": string}\n\nPersonalize ONLY with these tokens, in double braces: ${MESSAGE_TOKENS.map((t) => `{{${t}}}`).join(", ")}.\nWrite complete, ready-to-send copy. NEVER leave bracketed placeholders such as [insert link], [Link], [code], or [discount] — write any offer code out in full (e.g. WELCOME20) and omit URLs entirely rather than leaving a placeholder.\n${channel === "SMS" ? "SMS: keep it short (aim under 160 characters)." : "EMAIL: you may include a subject-like opening line."}`,
         prompt: `Audience: ${segmentSummary}\nBrief: ${brief}\n\nRespond with the JSON object only.`,
       });
 

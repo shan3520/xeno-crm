@@ -21,7 +21,11 @@ export default function CampaignsLayout({
       {/* Slim top bar — gives the dashboard the same identity as the console and a way back. */}
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          <Link href="/console" className="flex items-center gap-2.5">
+          <Link
+            href="/"
+            title="Back to home"
+            className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
+          >
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand/15 text-brand ring-1 ring-inset ring-brand/25">
               <Wand2 className="h-4 w-4" />
             </span>
