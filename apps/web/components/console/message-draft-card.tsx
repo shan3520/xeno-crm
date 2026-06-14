@@ -70,7 +70,7 @@ export function MessageDraftCard({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-elevated backdrop-blur-sm">
+    <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-elevated">
       {/* Header band */}
       <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-gradient-to-br from-msg/10 to-transparent px-5 py-4">
         <div>
@@ -104,7 +104,7 @@ export function MessageDraftCard({
                 <button
                   key={t}
                   onClick={() => insertToken(t)}
-                  className="rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition hover:bg-accent hover:text-foreground active:scale-95"
+                  className="rounded-md border border-border/60 bg-muted/40 px-2 py-1.5 font-mono text-[11px] text-muted-foreground transition hover:bg-accent hover:text-foreground active:scale-95"
                 >
                   {`{{${t}}}`}
                 </button>
@@ -114,7 +114,7 @@ export function MessageDraftCard({
               className={cn(
                 "shrink-0 pl-2 text-[11px] tabular-nums",
                 isShortForm && body.length > 160
-                  ? "text-amber-400"
+                  ? "text-warning"
                   : "text-muted-foreground",
               )}
             >

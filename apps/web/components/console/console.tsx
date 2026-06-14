@@ -173,10 +173,17 @@ export function Console() {
     if (!producedContent) setStalled(true);
   }, [status, messages]);
 
-  // Auto-scroll to the latest content as it streams.
+  // Auto-scroll to the latest content as it streams. Honor prefers-reduced-motion: jump
+  // instantly rather than smooth-scrolling on every streamed token.
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    bottomRef.current?.scrollIntoView({
+      behavior: reduce ? "auto" : "smooth",
+      block: "end",
+    });
   }, [messages, activeSegment, activeMessage]);
 
   function submit(text: string) {
@@ -215,11 +222,11 @@ export function Console() {
             <Wand2 className="h-4 w-4" />
           </div>
           <div className="leading-tight">
-            <p className="text-sm font-semibold tracking-tight text-foreground">
+            <h1 className="text-sm font-semibold tracking-tight text-foreground">
               Looms · Campaign Console
-            </p>
+            </h1>
             <p className="text-[11px] text-muted-foreground">
-              State your intent — review, edit, launch.
+              State your intent: review, edit, launch.
             </p>
           </div>
         </div>
@@ -271,7 +278,7 @@ export function Console() {
               )}
 
               {error && (
-                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-5 py-4">
+                <div className="rounded-2xl border border-warning/30 bg-warning/5 px-5 py-4">
                   <p className="text-sm font-medium text-foreground">
                     {rateLimited
                       ? "The model is busy right now"
@@ -293,13 +300,13 @@ export function Console() {
               )}
 
               {stalled && !error && !busy && (
-                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-5 py-4">
+                <div className="rounded-2xl border border-warning/30 bg-warning/5 px-5 py-4">
                   <p className="text-sm font-medium text-foreground">
                     That turn went quiet
                   </p>
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    The model didn’t respond in time — it’s likely rate-limited.
-                    Give it a moment, then retry.
+                    The model didn’t respond in time. It’s likely rate-limited;
+                    give it a moment, then retry.
                   </p>
                   <button
                     onClick={retryTurn}
@@ -347,8 +354,9 @@ export function Console() {
                   userStoppedRef.current = true;
                   void stop();
                 }}
-                className="flex h-8 w-8 items-center justify-center rounded-xl bg-secondary text-secondary-foreground transition hover:bg-accent active:scale-95"
-                title="Stop"
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary text-secondary-foreground transition hover:bg-accent active:scale-95"
+                title="Stop generating"
+                aria-label="Stop generating"
               >
                 <Square className="h-3.5 w-3.5" />
               </button>
@@ -356,8 +364,9 @@ export function Console() {
               <button
                 onClick={() => submit(input)}
                 disabled={!input.trim()}
-                className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary/90 active:scale-95 disabled:scale-100 disabled:opacity-40"
-                title="Send"
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary/90 active:scale-95 disabled:scale-100 disabled:opacity-40"
+                title="Send message"
+                aria-label="Send message"
               >
                 <ArrowUp className="h-4 w-4" />
               </button>

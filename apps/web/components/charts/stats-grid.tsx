@@ -79,7 +79,7 @@ export function StatsGrid({ funnel, rates, channel, className }: StatsGridProps)
       {cards.map((card) => (
         <div
           key={card.label}
-          className="relative overflow-hidden rounded-xl border border-border bg-card/40 p-5 backdrop-blur-sm transition-colors hover:bg-card/60"
+          className="relative overflow-hidden rounded-xl border border-border bg-card/40 p-5 transition-colors hover:bg-card/60"
         >
           {/* Accent top line */}
           <div

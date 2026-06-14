@@ -114,7 +114,7 @@ export function TimelineChart({ data, className }: TimelineChartProps) {
     return (
       <div
         className={cn(
-          "flex min-h-[300px] items-center justify-center rounded-xl border border-border bg-card/40 p-5 backdrop-blur-sm",
+          "flex min-h-[300px] items-center justify-center rounded-xl border border-border bg-card/40 p-5",
           className,
         )}
       >
@@ -130,7 +130,7 @@ export function TimelineChart({ data, className }: TimelineChartProps) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-card/40 p-5 backdrop-blur-sm",
+        "rounded-xl border border-border bg-card/40 p-5",
         className,
       )}
     >

@@ -99,7 +99,7 @@ export function LaunchPanel({ segment, message }: Props) {
 
   // ─── Compose / confirm state ──────────────────────────────────────
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-elevated backdrop-blur-sm">
+    <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-elevated">
       <div className="flex items-center gap-2 border-b border-border/60 bg-gradient-to-br from-launch/10 to-transparent px-5 py-4">
         <Rocket className="h-4 w-4 text-launch" />
         <h3 className="text-base font-semibold tracking-tight text-foreground">
@@ -163,9 +163,9 @@ export function LaunchPanel({ segment, message }: Props) {
 
         {/* Gated confirm */}
         {phase === "confirming" ? (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+          <div className="rounded-xl border border-warning/30 bg-warning/5 p-4">
             <div className="flex items-start gap-2">
-              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
               <p className="text-sm text-foreground/90">
                 This will queue{" "}
                 <strong className="font-semibold">

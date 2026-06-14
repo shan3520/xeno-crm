@@ -57,12 +57,12 @@ export function BackendStatusBanner() {
       aria-live="polite"
       className="fixed inset-x-0 bottom-5 z-50 flex justify-center px-4"
     >
-      <div className="flex max-w-xl items-center gap-3 rounded-2xl border border-amber-500/30 bg-background/90 px-4 py-3 text-sm shadow-lg backdrop-blur">
-        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-amber-400" />
+      <div className="flex max-w-xl items-center gap-3 rounded-2xl border border-warning/30 bg-background/90 px-4 py-3 text-sm shadow-lg backdrop-blur">
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-warning" />
         <p className="text-muted-foreground">
           <span className="font-medium text-foreground">Waking up the backend…</span>{" "}
           Free-tier services sleep when idle, so the first load can take up to ~60s. This is
-          normal — it&rsquo;ll continue automatically, no action needed.
+          normal; it&rsquo;ll continue automatically, no action needed.
         </p>
       </div>
     </div>

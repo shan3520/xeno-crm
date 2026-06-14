@@ -22,7 +22,7 @@ const mono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Looms · Campaign Console",
   description:
-    "AI-native mini CRM — state your intent in plain English, review editable segment, message, and launch cards.",
+    "AI-native mini CRM: state your intent in plain English, review editable segment, message, and launch cards.",
 };
 
 export default function RootLayout({

@@ -19,12 +19,14 @@ interface FailureChartProps {
   className?: string;
 }
 
+// Severity ramp (red → amber). Tokenized in globals.css so it tracks the OKLCH theme
+// instead of the calm chart family, signalling these bars mean trouble.
 const FAILURE_COLORS = [
-  "hsl(0 84% 60%)",
-  "hsl(15 80% 55%)",
-  "hsl(30 80% 50%)",
-  "hsl(45 80% 50%)",
-  "hsl(350 80% 55%)",
+  "var(--fail-1)",
+  "var(--fail-2)",
+  "var(--fail-3)",
+  "var(--fail-4)",
+  "var(--fail-5)",
 ];
 
 export function FailureChart({ data, className }: FailureChartProps) {
@@ -34,7 +36,7 @@ export function FailureChart({ data, className }: FailureChartProps) {
     return (
       <div
         className={cn(
-          "flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card/40 p-5 backdrop-blur-sm",
+          "flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card/40 p-5",
           className,
         )}
       >
@@ -61,7 +63,7 @@ export function FailureChart({ data, className }: FailureChartProps) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-card/40 p-5 backdrop-blur-sm",
+        "rounded-xl border border-border bg-card/40 p-5",
         className,
       )}
     >

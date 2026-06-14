@@ -179,7 +179,7 @@ export function SegmentRuleCard({ toolCallId, result, onActive }: Props) {
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-elevated backdrop-blur-sm">
+    <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-elevated">
       {/* Header band */}
       <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-gradient-to-br from-seg/10 to-transparent px-5 py-4">
         <div className="min-w-0">
@@ -239,7 +239,7 @@ export function SegmentRuleCard({ toolCallId, result, onActive }: Props) {
               />
             ))}
             <p className="text-[11px] text-muted-foreground">
-              Adjust the AI-emitted rule — the audience re-counts live.
+              Adjust the AI-emitted rule, and the audience re-counts live.
             </p>
           </div>
         ) : (

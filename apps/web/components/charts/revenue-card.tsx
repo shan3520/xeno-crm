@@ -41,7 +41,7 @@ export function RevenueCard({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl border border-border p-6 backdrop-blur-sm",
+        "relative overflow-hidden rounded-xl border border-border p-6",
         hasRevenue
           ? "bg-gradient-to-br from-launch/10 to-card/40"
           : "bg-card/40",

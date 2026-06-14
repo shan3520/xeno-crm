@@ -118,7 +118,7 @@ function OverviewStats({ data }: { data: OverviewResponse }) {
       {stats.map((s) => (
         <div
           key={s.label}
-          className="rounded-xl border border-border bg-card/50 px-4 py-3 backdrop-blur-sm transition-colors hover:border-border/80 hover:bg-card/70"
+          className="rounded-xl border border-border bg-card/50 px-4 py-3 transition-colors hover:border-border/80 hover:bg-card/70"
         >
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             {s.label}
@@ -329,7 +329,7 @@ export default function CampaignsPage() {
       <OverviewStats data={data} />
 
       {/* Campaign table */}
-      <div className="rounded-xl border border-border bg-card/30 overflow-hidden backdrop-blur-sm">
+      <div className="rounded-xl border border-border bg-card/30 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

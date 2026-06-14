@@ -299,7 +299,7 @@ export default function CampaignDetailPage() {
       {activeTab === "overview" && (
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <div className="rounded-xl border border-border bg-card/30 p-6 backdrop-blur-sm">
+            <div className="rounded-xl border border-border bg-card/30 p-6">
               <h3 className="mb-4 text-sm font-medium text-muted-foreground">
                 Campaign Funnel
               </h3>
@@ -317,7 +317,7 @@ export default function CampaignDetailPage() {
       )}
 
       {activeTab === "timeline" && (
-        <div className="rounded-xl border border-border bg-card/30 p-6 backdrop-blur-sm">
+        <div className="rounded-xl border border-border bg-card/30 p-6">
           <h3 className="mb-4 text-sm font-medium text-muted-foreground">
             Event Timeline
           </h3>
@@ -326,7 +326,7 @@ export default function CampaignDetailPage() {
       )}
 
       {activeTab === "failures" && (
-        <div className="rounded-xl border border-border bg-card/30 p-6 backdrop-blur-sm">
+        <div className="rounded-xl border border-border bg-card/30 p-6">
           <h3 className="mb-4 text-sm font-medium text-muted-foreground">
             Failure Breakdown
           </h3>

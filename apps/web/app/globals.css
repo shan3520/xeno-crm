@@ -39,12 +39,20 @@
   --msg: oklch(0.55 0.16 305);
   --launch: oklch(0.55 0.13 162);
   --results: oklch(0.6 0.14 78);
+  --warning: oklch(0.66 0.15 70);
 
   --chart-1: oklch(0.55 0.14 240);
   --chart-2: oklch(0.55 0.13 162);
   --chart-3: oklch(0.55 0.16 305);
   --chart-4: oklch(0.6 0.14 78);
   --chart-5: oklch(0.55 0.12 215);
+
+  /* Failure severity ramp (red → amber), tokenized so it tracks the theme. */
+  --fail-1: oklch(0.55 0.2 25);
+  --fail-2: oklch(0.6 0.17 45);
+  --fail-3: oklch(0.65 0.15 60);
+  --fail-4: oklch(0.7 0.14 78);
+  --fail-5: oklch(0.52 0.19 12);
 
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.2 0.01 264);
@@ -66,8 +74,10 @@
   --popover: oklch(0.215 0.008 264);
   --popover-foreground: oklch(0.97 0.004 264);
 
-  /* Single iris/indigo brand accent — primary buttons, the chat bubble, focus, active nav. */
-  --primary: oklch(0.62 0.155 274);
+  /* Single iris/indigo brand accent — primary buttons, the chat bubble, focus, active nav.
+   * L sits at 0.56 (not brighter) so white --primary-foreground clears WCAG AA (≈4.7:1) as
+   * body text on the user chat bubble. --brand stays brighter for use AS text/icons on dark. */
+  --primary: oklch(0.56 0.16 274);
   --primary-foreground: oklch(0.98 0.012 274);
 
   --secondary: oklch(0.27 0.007 264);
@@ -87,9 +97,10 @@
 
   /* Semantic artifact family — one chroma band, hues spaced for distinction, never neon. */
   --seg: oklch(0.7 0.13 240); /* audience  — blue   */
-  --msg: oklch(0.71 0.14 305); /* message   — violet */
+  --msg: oklch(0.74 0.14 305); /* message   — violet (L raised for AA on small labels) */
   --launch: oklch(0.72 0.13 162); /* launch    — emerald*/
   --results: oklch(0.8 0.13 78); /* results   — amber  */
+  --warning: oklch(0.8 0.14 72); /* reserved for genuine warnings only */
 
   /* Chart ramp drawn from the same calm family (was high-chroma rainbow). */
   --chart-1: oklch(0.68 0.13 240);
@@ -97,6 +108,13 @@
   --chart-3: oklch(0.71 0.13 305);
   --chart-4: oklch(0.8 0.13 78);
   --chart-5: oklch(0.7 0.11 215);
+
+  /* Failure severity ramp (red → amber) — tokenized; was hard-coded HSL in FailureChart. */
+  --fail-1: oklch(0.64 0.2 25);
+  --fail-2: oklch(0.68 0.17 45);
+  --fail-3: oklch(0.74 0.15 60);
+  --fail-4: oklch(0.8 0.14 78);
+  --fail-5: oklch(0.6 0.19 12);
 
   --sidebar: oklch(0.215 0.008 264);
   --sidebar-foreground: oklch(0.97 0.004 264);
@@ -143,6 +161,7 @@
   --color-msg: var(--msg);
   --color-launch: var(--launch);
   --color-results: var(--results);
+  --color-warning: var(--warning);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -168,13 +187,44 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* Faint ambient depth so the canvas isn't a flat slab of near-black. */
+  }
+  /* Faint ambient depth so the canvas isn't a flat slab of near-black. A fixed pseudo-element
+   * (not background-attachment: fixed) keeps the glow pinned without repainting on scroll. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
     background-image: radial-gradient(
       120% 80% at 50% -10%,
       oklch(0.62 0.155 274 / 0.07),
       transparent 60%
     );
-    background-attachment: fixed;
+  }
+  /* Consistent, visible keyboard focus on every custom button/link (inputs ring on their own).
+   * The components themselves carry no focus-visible style, so this is the single source. */
+  button:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+}
+
+/* Reduced motion is not optional: collapse transitions/animations and smooth scroll for users
+ * who ask for it. Spinners (.animate-spin) are kept so "working…" still reads. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *:not(.animate-spin),
+  *:not(.animate-spin)::before,
+  *:not(.animate-spin)::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
