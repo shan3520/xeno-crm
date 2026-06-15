@@ -182,7 +182,7 @@ export function SegmentRuleCard({ toolCallId, result, onActive }: Props) {
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-elevated">
+    <div className="artifact-in overflow-hidden rounded-2xl border border-border bg-card/40 shadow-elevated">
       {/* Header band */}
       <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-gradient-to-br from-seg/10 to-transparent px-5 py-4">
         <div className="min-w-0">

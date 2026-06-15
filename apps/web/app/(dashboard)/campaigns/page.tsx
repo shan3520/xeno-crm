@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -89,42 +90,109 @@ function formatDate(iso: string | null): string {
   });
 }
 
+// ─── Animated figures ───────────────────────────────────────────────
+
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const on = () => setReduced(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return reduced;
+}
+
+/**
+ * A figure that eases to its value rather than snapping. Kept short (≈0.65s, ease-out-quart)
+ * and honest: it animates from the previously shown number to the new one (from 0 on first
+ * paint, from the last value on a live refetch), so it reads as the count settling — not a
+ * vanity slot-machine. Instant under prefers-reduced-motion. tabular-nums keeps width stable.
+ */
+function CountUp({
+  value,
+  format,
+}: {
+  value: number;
+  format: (n: number) => string;
+}) {
+  const reduced = usePrefersReducedMotion();
+  const [display, setDisplay] = useState(value);
+  const fromRef = useRef(0);
+
+  useEffect(() => {
+    if (reduced) {
+      setDisplay(value);
+      fromRef.current = value;
+      return;
+    }
+    const from = fromRef.current;
+    const to = value;
+    if (from === to) {
+      setDisplay(value);
+      return;
+    }
+    const duration = 650;
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 4); // ease-out-quart
+      setDisplay(from + (to - from) * eased);
+      if (t < 1) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        setDisplay(to);
+        fromRef.current = to;
+      }
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, reduced]);
+
+  return <>{format(display)}</>;
+}
+
 // ─── Overview stat cards ────────────────────────────────────────────
 
+function fmtInt(n: number): string {
+  return Math.round(n).toLocaleString();
+}
+function fmtPct(n: number): string {
+  return `${(n * 100).toFixed(1)}%`;
+}
+function fmtRevenueNum(n: number): string {
+  return n <= 0 ? "—" : `₹${Math.round(n).toLocaleString("en-IN")}`;
+}
+
 function OverviewStats({ data }: { data: OverviewResponse }) {
-  const stats = [
-    { label: "Campaigns", value: data.totals.campaigns.toString() },
-    { label: "Total Sent", value: data.totals.sent.toLocaleString() },
-    {
-      label: "Delivery Rate",
-      value: pct(data.rates.deliveryRate),
-    },
-    {
-      label: "Open Rate",
-      value: pct(data.rates.openRate),
-    },
-    {
-      label: "Click Rate",
-      value: pct(data.rates.clickRate),
-    },
+  const stats: { label: string; value: number; format: (n: number) => string }[] = [
+    { label: "Campaigns", value: data.totals.campaigns, format: fmtInt },
+    { label: "Total Sent", value: data.totals.sent, format: fmtInt },
+    { label: "Delivery Rate", value: data.rates.deliveryRate, format: fmtPct },
+    { label: "Open Rate", value: data.rates.openRate, format: fmtPct },
+    { label: "Click Rate", value: data.rates.clickRate, format: fmtPct },
     {
       label: "Revenue",
-      value: formatRevenue(data.totals.attributedRevenue),
+      value: parseFloat(data.totals.attributedRevenue) || 0,
+      format: fmtRevenueNum,
     },
   ];
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-      {stats.map((s) => (
+      {stats.map((s, i) => (
         <div
           key={s.label}
-          className="rounded-xl border border-border bg-card/50 px-4 py-3 transition-colors hover:border-border/80 hover:bg-card/70"
+          style={{ animationDelay: `${i * 60}ms` }}
+          className="msg-in rounded-xl border border-border bg-card/50 px-4 py-3 transition duration-200 hover:-translate-y-0.5 hover:border-brand/30 hover:bg-card/70 hover:shadow-elevated"
         >
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             {s.label}
           </p>
           <p className="mt-1 text-xl font-semibold tracking-tight tabular-nums">
-            {s.value}
+            <CountUp value={s.value} format={s.format} />
           </p>
         </div>
       ))}
@@ -184,7 +252,7 @@ function CampaignRow({ campaign }: { campaign: CampaignSummaryRow }) {
       </td>
       <td className="px-4 py-3 text-right">
         <ArrowRight
-          className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+          className="h-4 w-4 -translate-x-1 text-brand opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100"
           aria-hidden="true"
         />
       </td>
@@ -231,7 +299,7 @@ function CampaignCard({ campaign }: { campaign: CampaignSummaryRow }) {
   return (
     <Link
       href={`/campaigns/${campaign.id}`}
-      className="block rounded-xl border border-border bg-card/40 p-4 transition-colors hover:bg-card/60 active:scale-[0.99]"
+      className="block rounded-xl border border-border bg-card/40 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-brand/30 hover:bg-card/60 hover:shadow-elevated active:scale-[0.99]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">

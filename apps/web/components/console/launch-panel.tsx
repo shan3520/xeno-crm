@@ -67,7 +67,7 @@ export function LaunchPanel({ segment, message }: Props) {
   // ─── Success state ────────────────────────────────────────────────
   if (phase === "launched" && launched) {
     return (
-      <div className="overflow-hidden rounded-2xl border border-launch/30 bg-launch/5 shadow-elevated">
+      <div className="panel-in overflow-hidden rounded-2xl border border-launch/30 bg-launch/5 shadow-elevated">
         <div className="flex flex-col items-start gap-3 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <div className="rounded-xl bg-launch/15 p-2.5">
@@ -101,7 +101,7 @@ export function LaunchPanel({ segment, message }: Props) {
 
   // ─── Compose / confirm state ──────────────────────────────────────
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-elevated">
+    <div className="panel-in overflow-hidden rounded-2xl border border-border bg-card/40 shadow-elevated">
       <div className="flex items-center gap-2 border-b border-border/60 bg-gradient-to-br from-launch/10 to-transparent px-5 py-4">
         <Rocket className="h-4 w-4 text-launch" />
         <h3 className="text-base font-semibold tracking-tight text-foreground">

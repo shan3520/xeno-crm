@@ -79,10 +79,11 @@ export function StatsGrid({ funnel, rates, channel, className }: StatsGridProps)
         className,
       )}
     >
-      {cards.map((card) => (
+      {cards.map((card, i) => (
         <div
           key={card.label}
-          className="rounded-xl border border-border bg-card/40 p-5 transition-colors hover:bg-card/60"
+          style={{ animationDelay: `${i * 60}ms` }}
+          className="msg-in rounded-xl border border-border bg-card/40 p-5 transition duration-200 hover:-translate-y-0.5 hover:border-brand/30 hover:bg-card/60 hover:shadow-elevated"
         >
           <p className="text-sm font-medium text-muted-foreground">
             {card.label}

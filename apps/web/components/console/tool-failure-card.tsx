@@ -29,7 +29,7 @@ export function ToolFailureCard({
       : "Something went wrong";
 
   return (
-    <div className="rounded-2xl border border-warning/30 bg-warning/5 px-5 py-4">
+    <div className="artifact-in rounded-2xl border border-warning/30 bg-warning/5 px-5 py-4">
       <div className="flex items-start gap-3">
         <div className="rounded-lg bg-warning/15 p-2">
           <Icon className="h-4 w-4 text-warning" />

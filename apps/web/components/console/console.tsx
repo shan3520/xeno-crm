@@ -349,7 +349,7 @@ export function Console() {
       {/* ── Composer ── */}
       <div className="shrink-0 border-t border-border/60 bg-background/80 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md">
         <div className="mx-auto w-full max-w-3xl">
-          <div className="flex items-end gap-2 rounded-2xl border border-border bg-card/50 px-3 py-2 transition focus-within:border-brand/40 focus-within:ring-2 focus-within:ring-brand/30">
+          <div className="flex items-end gap-2 rounded-2xl border border-border bg-card/50 px-3 py-2 shadow-elevated transition duration-200 focus-within:border-brand/40 focus-within:ring-2 focus-within:ring-brand/30">
             <textarea
               ref={inputRef}
               value={input}
@@ -381,7 +381,7 @@ export function Console() {
               <button
                 onClick={() => submit(input)}
                 disabled={!input.trim()}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary/90 active:scale-95 disabled:scale-100 disabled:opacity-40"
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground transition duration-200 hover:scale-105 hover:bg-primary/90 hover:shadow-elevated active:scale-95 disabled:scale-100 disabled:opacity-40 disabled:shadow-none"
                 title="Send message"
                 aria-label="Send message"
               >
@@ -418,15 +418,16 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }) {
         <p className="px-1 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           Try one of these
         </p>
-        {EXAMPLE_PROMPTS.map((p) => (
+        {EXAMPLE_PROMPTS.map((p, i) => (
           <button
             key={p}
             onClick={() => onPick(p)}
-            className="group flex items-center gap-2.5 rounded-xl border border-border bg-card/40 px-4 py-3 text-left text-sm text-foreground/90 transition hover:border-brand/40 hover:bg-accent active:scale-[0.99]"
+            style={{ animationDelay: `${120 + i * 70}ms` }}
+            className="msg-in group flex items-center gap-2.5 rounded-xl border border-border bg-card/40 px-4 py-3 text-left text-sm text-foreground/90 transition duration-200 hover:-translate-y-0.5 hover:border-brand/40 hover:bg-accent hover:shadow-elevated active:scale-[0.99]"
           >
-            <Wand2 className="h-3.5 w-3.5 shrink-0 text-brand" />
+            <Wand2 className="h-3.5 w-3.5 shrink-0 text-brand transition-transform duration-200 group-hover:rotate-[-8deg] group-hover:scale-110" />
             <span>{p}</span>
-            <ArrowUp className="ml-auto h-3.5 w-3.5 shrink-0 rotate-45 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+            <ArrowUp className="ml-auto h-3.5 w-3.5 shrink-0 -translate-x-1 rotate-45 text-brand opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100" />
           </button>
         ))}
       </div>
@@ -455,8 +456,8 @@ function MessageBlock({
       .map((p) => (p as { text: string }).text)
       .join("\n");
     return (
-      <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-sm text-primary-foreground">
+      <div className="msg-in flex justify-end">
+        <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-sm text-primary-foreground shadow-elevated">
           {text}
         </div>
       </div>
@@ -471,7 +472,7 @@ function MessageBlock({
           return (
             <p
               key={i}
-              className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90"
+              className="msg-in whitespace-pre-wrap text-sm leading-relaxed text-foreground/90"
             >
               {part.text}
             </p>

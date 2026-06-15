@@ -75,7 +75,7 @@ export function MessageDraftCard({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card/40 shadow-elevated">
+    <div className="artifact-in overflow-hidden rounded-2xl border border-border bg-card/40 shadow-elevated">
       {/* Header band */}
       <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-gradient-to-br from-msg/10 to-transparent px-5 py-4">
         <div>

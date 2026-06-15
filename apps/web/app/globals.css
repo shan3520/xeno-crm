@@ -76,25 +76,25 @@
 }
 
 .dark {
-  --background: oklch(0.17 0.006 264);
-  --foreground: oklch(0.97 0.004 264);
-  --card: oklch(0.215 0.008 264);
-  --card-foreground: oklch(0.97 0.004 264);
-  --popover: oklch(0.215 0.008 264);
-  --popover-foreground: oklch(0.97 0.004 264);
+  --background: oklch(0.165 0.004 75);
+  --foreground: oklch(0.97 0.004 75);
+  --card: oklch(0.215 0.005 75);
+  --card-foreground: oklch(0.97 0.004 75);
+  --popover: oklch(0.215 0.005 75);
+  --popover-foreground: oklch(0.97 0.004 75);
 
   /* Single iris/indigo brand accent — primary buttons, the chat bubble, focus, active nav.
    * L sits at 0.56 (not brighter) so white --primary-foreground clears WCAG AA (≈4.7:1) as
    * body text on the user chat bubble. --brand stays brighter for use AS text/icons on dark. */
-  --primary: oklch(0.56 0.16 274);
-  --primary-foreground: oklch(0.98 0.012 274);
+  --primary: oklch(0.8 0.12 85);
+  --primary-foreground: oklch(0.24 0.04 85);
 
-  --secondary: oklch(0.27 0.007 264);
-  --secondary-foreground: oklch(0.97 0.004 264);
-  --muted: oklch(0.27 0.007 264);
-  --muted-foreground: oklch(0.71 0.013 264);
-  --accent: oklch(0.3 0.009 264);
-  --accent-foreground: oklch(0.98 0.004 264);
+  --secondary: oklch(0.27 0.005 75);
+  --secondary-foreground: oklch(0.97 0.004 75);
+  --muted: oklch(0.27 0.005 75);
+  --muted-foreground: oklch(0.72 0.012 75);
+  --accent: oklch(0.3 0.006 75);
+  --accent-foreground: oklch(0.98 0.004 75);
   --destructive: oklch(0.64 0.2 25);
   /* A lighter coral-red for destructive TEXT on dark: --destructive (L 0.64) only reaches
    * ~3.7:1 on a destructive tint at small sizes; this clears WCAG AA (≈4.6:1) on bg-destructive/15
@@ -103,24 +103,24 @@
 
   --border: oklch(1 0 0 / 9%);
   --input: oklch(1 0 0 / 13%);
-  --ring: oklch(0.62 0.155 274);
+  --ring: oklch(0.8 0.11 85);
 
   /* Brand sits slightly brighter than --primary so it stays legible as text/icon on dark. */
-  --brand: oklch(0.68 0.15 274);
+  --brand: oklch(0.82 0.11 85);
 
   /* Semantic artifact family — one chroma band, hues spaced for distinction, never neon. */
-  --seg: oklch(0.7 0.13 240); /* audience  — blue   */
-  --msg: oklch(0.74 0.14 305); /* message   — violet (L raised for AA on small labels) */
-  --launch: oklch(0.72 0.13 162); /* launch    — emerald*/
-  --results: oklch(0.8 0.13 78); /* results   — amber  */
-  --warning: oklch(0.8 0.14 72); /* reserved for genuine warnings only */
+  --seg: oklch(0.72 0.1 230); /* audience  — cool blue */
+  --msg: oklch(0.76 0.1 200); /* message   — teal/cyan (off violet; L for AA on small labels) */
+  --launch: oklch(0.74 0.12 158); /* launch    — emerald */
+  --results: oklch(0.74 0.12 350); /* results   — rose (brand owns the warm gold) */
+  --warning: oklch(0.78 0.14 55); /* reserved for genuine warnings only */
 
   /* Chart ramp drawn from the same calm family (was high-chroma rainbow). */
-  --chart-1: oklch(0.68 0.13 240);
-  --chart-2: oklch(0.72 0.12 162);
-  --chart-3: oklch(0.71 0.13 305);
-  --chart-4: oklch(0.8 0.13 78);
-  --chart-5: oklch(0.7 0.11 215);
+  --chart-1: oklch(0.72 0.1 230);
+  --chart-2: oklch(0.74 0.11 158);
+  --chart-3: oklch(0.76 0.1 200);
+  --chart-4: oklch(0.74 0.12 350);
+  --chart-5: oklch(0.78 0.1 85);
 
   /* Failure severity ramp (red → amber) — tokenized; was hard-coded HSL in FailureChart. */
   --fail-1: oklch(0.64 0.2 25);
@@ -129,17 +129,17 @@
   --fail-4: oklch(0.8 0.14 78);
   --fail-5: oklch(0.6 0.19 12);
 
-  --sidebar: oklch(0.215 0.008 264);
-  --sidebar-foreground: oklch(0.97 0.004 264);
-  --sidebar-primary: oklch(0.62 0.155 274);
-  --sidebar-primary-foreground: oklch(0.98 0.012 274);
-  --sidebar-accent: oklch(0.3 0.009 264);
-  --sidebar-accent-foreground: oklch(0.98 0.004 264);
+  --sidebar: oklch(0.215 0.005 75);
+  --sidebar-foreground: oklch(0.97 0.004 75);
+  --sidebar-primary: oklch(0.8 0.12 85);
+  --sidebar-primary-foreground: oklch(0.24 0.04 85);
+  --sidebar-accent: oklch(0.3 0.006 75);
+  --sidebar-accent-foreground: oklch(0.98 0.004 75);
   --sidebar-border: oklch(1 0 0 / 9%);
-  --sidebar-ring: oklch(0.62 0.155 274);
+  --sidebar-ring: oklch(0.8 0.12 85);
 
   /* Tinted shadow base — shadows carry the canvas hue, not flat black. */
-  --shadow-color: 264 50% 2%;
+  --shadow-color: 60 25% 2%;
 }
 
 @theme inline {
@@ -212,7 +212,7 @@
     pointer-events: none;
     background-image: radial-gradient(
       120% 80% at 50% -10%,
-      oklch(0.62 0.155 274 / 0.07),
+      oklch(0.8 0.12 85 / 0.06),
       transparent 60%
     );
   }
@@ -264,6 +264,73 @@
   will-change: auto;
 }
 
+/* ── Interaction grammar ──────────────────────────────────────────────────
+ * Every transition in the app eases on the confident exponential curve, not the
+ * browser's flat default. This only changes the SHAPE of motion already declared
+ * (Tailwind's `transition` utilities) — it adds no new transitions. CSS animations
+ * (tw-animate-css, .animate-spin) carry their own easing and are untouched.
+ */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    transition-timing-function: var(--ease-out-quart);
+  }
+}
+
+/* ── Product entrance motion ──────────────────────────────────────────────
+ * One-shot mount animations for conversational + artifact content. They run once
+ * when the element mounts (a new chat turn, a resolved AI artifact), never on every
+ * streamed token. The global reduced-motion block below collapses them to ~instant.
+ */
+@keyframes msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.msg-in {
+  animation: msg-in 0.42s var(--ease-out-quart) both;
+}
+
+/* The AI's proposal "comes into focus": resolves from soft + low to sharp + settled,
+ * echoing the landing-page focus-pull. Blur is bounded to one card at a time (perf-safe). */
+@keyframes artifact-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.98);
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+.artifact-in {
+  animation: artifact-in 0.55s var(--ease-out-expo) both;
+  will-change: opacity, transform, filter;
+}
+
+/* A bottom-docked panel (launch / confirm) rising into place. */
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.panel-in {
+  animation: panel-in 0.5s var(--ease-out-quint) both;
+}
+
 /* Reduced motion is not optional: collapse transitions/animations and smooth scroll for users
  * who ask for it. Spinners (.animate-spin) are kept so "working…" still reads. */
 @media (prefers-reduced-motion: reduce) {
@@ -275,6 +342,9 @@
   *:not(.animate-spin)::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    /* Zero the delay too: staggered entrances (msg-in/artifact-in) fill `both`, so a residual
+     * delay would hold them at opacity:0 and flash blank before snapping in. */
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
   }
 }

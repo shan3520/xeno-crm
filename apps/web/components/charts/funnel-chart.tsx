@@ -91,7 +91,13 @@ export function FunnelChart({ funnel, className }: FunnelChartProps) {
             tickLine={false}
             width={70}
           />
-          <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={24}>
+          <Bar
+            dataKey="value"
+            radius={[0, 6, 6, 0]}
+            barSize={24}
+            animationDuration={900}
+            animationEasing="ease-out"
+          >
             {data.map((entry) => (
               <Cell key={entry.stage} fill={entry.color} />
             ))}

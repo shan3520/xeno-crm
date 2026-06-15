@@ -81,12 +81,15 @@ function SiteHeader() {
         <div className="flex items-center gap-2">
           <Link
             href={CONSOLE_HREF}
-            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+            className="group inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground transition duration-200 hover:bg-primary/90 hover:shadow-elevated active:scale-[0.98]"
           >
             {/* Compact on the narrowest phones so logo + CTA + menu never crowd at 320px. */}
             <span className="sm:hidden">Console</span>
             <span className="hidden sm:inline">Open the console</span>
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            <ArrowRight
+              className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
+              aria-hidden="true"
+            />
           </Link>
           <MobileNav />
         </div>
@@ -120,14 +123,17 @@ function Hero() {
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
               href={CONSOLE_HREF}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+              className="group inline-flex items-center gap-1.5 rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition duration-200 hover:bg-primary/90 hover:shadow-elevated active:scale-[0.98]"
             >
               Open the console
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              <ArrowRight
+                className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
             </Link>
             <a
               href="#how"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background/50 px-5 py-3 text-sm font-medium text-foreground transition hover:bg-accent active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background/50 px-5 py-3 text-sm font-medium text-foreground transition duration-200 hover:-translate-y-0.5 hover:border-brand/30 hover:bg-accent active:scale-[0.98]"
             >
               See how it works
             </a>
@@ -327,7 +333,7 @@ function Artifacts() {
             return (
               <Reveal key={a.label} delay={i * 80} className={a.span}>
                 <div
-                  className={`h-full overflow-hidden rounded-2xl border border-border bg-gradient-to-br ${a.wash} to-transparent p-6 md:p-7`}
+                  className={`h-full overflow-hidden rounded-2xl border border-border bg-gradient-to-br ${a.wash} to-transparent p-6 transition duration-200 hover:-translate-y-1 hover:border-brand/25 hover:shadow-elevated md:p-7`}
                 >
                   <div
                     className={`flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider ${a.text}`}
@@ -454,10 +460,13 @@ function ClosingCta() {
         <div className="mt-8 flex justify-center">
           <Link
             href={CONSOLE_HREF}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-6 py-3.5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+            className="group inline-flex items-center gap-1.5 rounded-xl bg-primary px-6 py-3.5 text-sm font-medium text-primary-foreground transition duration-200 hover:bg-primary/90 hover:shadow-elevated active:scale-[0.98]"
           >
             Open the console
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            <ArrowRight
+              className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
+              aria-hidden="true"
+            />
           </Link>
         </div>
       </Reveal>
