@@ -20,41 +20,41 @@
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Light values are defined for completeness; the app runs dark (html.dark). */
-  --background: oklch(0.99 0.002 264);
-  --foreground: oklch(0.2 0.01 264);
+  --background: oklch(0.99 0.002 75);
+  --foreground: oklch(0.2 0.008 75);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.01 264);
+  --card-foreground: oklch(0.2 0.008 75);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.01 264);
-  --primary: oklch(0.55 0.16 274);
-  --primary-foreground: oklch(0.99 0.01 274);
-  --secondary: oklch(0.96 0.004 264);
-  --secondary-foreground: oklch(0.25 0.01 264);
-  --muted: oklch(0.96 0.004 264);
-  --muted-foreground: oklch(0.5 0.012 264);
-  --accent: oklch(0.95 0.006 264);
-  --accent-foreground: oklch(0.25 0.01 264);
+  --popover-foreground: oklch(0.2 0.008 75);
+  --primary: oklch(0.56 0.12 80);
+  --primary-foreground: oklch(0.99 0.02 85);
+  --secondary: oklch(0.96 0.004 75);
+  --secondary-foreground: oklch(0.25 0.008 75);
+  --muted: oklch(0.96 0.004 75);
+  --muted-foreground: oklch(0.5 0.01 75);
+  --accent: oklch(0.95 0.006 75);
+  --accent-foreground: oklch(0.25 0.008 75);
   --destructive: oklch(0.58 0.22 25);
   /* Destructive tuned to read as TEXT on a faint destructive tint (this app has no solid
    * destructive fills — every destructive surface is a /5–/15 tint). Darker than --destructive
    * here because light-mode text sits on a near-white bg. Revisit if a solid red button is added. */
   --destructive-foreground: oklch(0.5 0.2 25);
-  --border: oklch(0.9 0.005 264);
-  --input: oklch(0.9 0.005 264);
-  --ring: oklch(0.55 0.16 274);
+  --border: oklch(0.9 0.005 75);
+  --input: oklch(0.9 0.005 75);
+  --ring: oklch(0.56 0.12 80);
 
-  --brand: oklch(0.55 0.16 274);
-  --seg: oklch(0.55 0.14 240);
-  --msg: oklch(0.55 0.16 305);
-  --launch: oklch(0.55 0.13 162);
-  --results: oklch(0.6 0.14 78);
-  --warning: oklch(0.66 0.15 70);
+  --brand: oklch(0.5 0.12 80);
+  --seg: oklch(0.52 0.1 230);
+  --msg: oklch(0.54 0.1 200);
+  --launch: oklch(0.52 0.12 158);
+  --results: oklch(0.54 0.12 350);
+  --warning: oklch(0.6 0.13 55);
 
-  --chart-1: oklch(0.55 0.14 240);
-  --chart-2: oklch(0.55 0.13 162);
-  --chart-3: oklch(0.55 0.16 305);
-  --chart-4: oklch(0.6 0.14 78);
-  --chart-5: oklch(0.55 0.12 215);
+  --chart-1: oklch(0.52 0.1 230);
+  --chart-2: oklch(0.52 0.12 158);
+  --chart-3: oklch(0.54 0.1 200);
+  --chart-4: oklch(0.54 0.12 350);
+  --chart-5: oklch(0.58 0.1 85);
 
   /* Failure severity ramp (red → amber), tokenized so it tracks the theme. */
   --fail-1: oklch(0.55 0.2 25);
@@ -63,16 +63,16 @@
   --fail-4: oklch(0.7 0.14 78);
   --fail-5: oklch(0.52 0.19 12);
 
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.2 0.01 264);
-  --sidebar-primary: oklch(0.55 0.16 274);
-  --sidebar-primary-foreground: oklch(0.99 0.01 274);
-  --sidebar-accent: oklch(0.95 0.006 264);
-  --sidebar-accent-foreground: oklch(0.25 0.01 264);
-  --sidebar-border: oklch(0.9 0.005 264);
-  --sidebar-ring: oklch(0.55 0.16 274);
+  --sidebar: oklch(0.985 0.002 75);
+  --sidebar-foreground: oklch(0.2 0.008 75);
+  --sidebar-primary: oklch(0.56 0.12 80);
+  --sidebar-primary-foreground: oklch(0.99 0.02 85);
+  --sidebar-accent: oklch(0.95 0.006 75);
+  --sidebar-accent-foreground: oklch(0.25 0.008 75);
+  --sidebar-border: oklch(0.9 0.005 75);
+  --sidebar-ring: oklch(0.56 0.12 80);
 
-  --shadow-color: 264 60% 4%;
+  --shadow-color: 60 25% 4%;
 }
 
 .dark {
@@ -86,8 +86,8 @@
   /* Single iris/indigo brand accent — primary buttons, the chat bubble, focus, active nav.
    * L sits at 0.56 (not brighter) so white --primary-foreground clears WCAG AA (≈4.7:1) as
    * body text on the user chat bubble. --brand stays brighter for use AS text/icons on dark. */
-  --primary: oklch(0.8 0.12 85);
-  --primary-foreground: oklch(0.24 0.04 85);
+  --primary: oklch(0.72 0.12 85);
+  --primary-foreground: oklch(0.22 0.035 85);
 
   --secondary: oklch(0.27 0.005 75);
   --secondary-foreground: oklch(0.97 0.004 75);
