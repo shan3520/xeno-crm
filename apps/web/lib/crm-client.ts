@@ -41,6 +41,15 @@ export interface SegmentPreview {
   sample: unknown[];
 }
 
+/** Minimal campaign descriptor the list_campaigns tool exposes to the model (newest first). */
+export interface CampaignListItem {
+  id: string;
+  name: string;
+  channel: string;
+  status: string;
+  launchedAt: string | null;
+}
+
 export type ChatRole = "USER" | "ASSISTANT" | "TOOL";
 export type AiTaskKind = "SEGMENT_RULE" | "MESSAGE_DRAFT" | "RESULTS_NARRATIVE";
 
@@ -66,6 +75,11 @@ export const crm = {
   /** Real funnel stats for one campaign — the ground truth narrate_results is grounded in. */
   campaignStats(campaignId: string): Promise<CampaignStatsResponse> {
     return call<CampaignStatsResponse>(`campaigns/${campaignId}/stats`);
+  },
+
+  /** Recent campaigns (newest first) so the model can resolve a name/"my last campaign" to an id. */
+  listCampaigns(): Promise<CampaignListItem[]> {
+    return call<CampaignListItem[]>("campaigns");
   },
 
   createThread(title?: string): Promise<{ id: string; title: string | null; createdAt: string }> {

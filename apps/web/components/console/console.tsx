@@ -564,7 +564,9 @@ function ToolPending({ name }: { name: string }) {
         ? "Drafting the message…"
         : name === AI_TOOL_NAMES.narrateResults
           ? "Reading the campaign stats…"
-          : "Working…";
+          : name === "list_campaigns"
+            ? "Finding the campaign…"
+            : "Working…";
   return (
     <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-card/30 px-4 py-3 text-sm text-muted-foreground">
       <Loader2 className="h-4 w-4 animate-spin text-brand" />

@@ -1,4 +1,4 @@
-import { generateText, tool } from "ai";
+import { generateText, jsonSchema, tool } from "ai";
 import {
   AI_TOOL_NAMES,
   DraftMessageInputSchema,
@@ -240,6 +240,44 @@ const draftMessage = tool({
 });
 
 /**
+ * list_campaigns — resolve which campaign the marketer means. narrate_results needs a campaign
+ * id, but a marketer never knows the cuid; they say "my last campaign" or name it. This returns
+ * recent campaigns (newest first) so the model can pick the id and then call narrate_results.
+ * Read-only metadata; the intermediate result renders no card (the console shows the narrative).
+ */
+const listCampaigns = tool({
+  description:
+    "List recent campaigns (id, name, channel, status, launchedAt), newest first. Call this FIRST to find the campaign id the marketer means (e.g. 'my last campaign', or matched by name) before calling narrate_results — never ask the marketer for a raw id.",
+  inputSchema: jsonSchema<{ limit?: number }>({
+    type: "object",
+    properties: {
+      limit: {
+        type: "number",
+        description: "How many recent campaigns to return (1–20, default 8).",
+      },
+    },
+    additionalProperties: false,
+  }),
+  async execute({ limit }) {
+    try {
+      const campaigns = await crm.listCampaigns();
+      return {
+        ok: true as const,
+        campaigns: campaigns.slice(0, limit ?? 8).map((c) => ({
+          id: c.id,
+          name: c.name,
+          channel: c.channel,
+          status: c.status,
+          launchedAt: c.launchedAt,
+        })),
+      };
+    } catch (err) {
+      return toToolFailure(err);
+    }
+  },
+});
+
+/**
  * narrate_results — read the REAL campaign stats from the CRM and explain them. The narrative
  * is grounded in fetched numbers, never invented; validated before returning.
  */
@@ -302,6 +340,7 @@ export function buildTools() {
   return {
     [AI_TOOL_NAMES.generateSegmentRule]: generateSegmentRule,
     [AI_TOOL_NAMES.draftMessage]: draftMessage,
+    list_campaigns: listCampaigns,
     [AI_TOOL_NAMES.narrateResults]: narrateResults,
   };
 }
