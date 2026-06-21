@@ -4,6 +4,8 @@ import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 
 import { PrismaService } from "../prisma/prisma.service";
+import type { AppConfigService } from "../config/app-config.service";
+import { SendWorkerService } from "../send-worker/send-worker.service";
 import { ReceiptsService } from "./receipts.service";
 import { ReconcileService } from "./reconcile.service";
 import type { ReceiptDto } from "./receipts.dto";
@@ -29,6 +31,25 @@ const DB_TIMEOUT_MS = 60_000;
 const prisma = new PrismaService();
 const receipts = new ReceiptsService(prisma);
 const reconcile = new ReconcileService(prisma);
+// workerMaxAttempts=1 so a single permanent failure dead-letters on the first markFailure.
+const worker = new SendWorkerService(prisma, {
+  workerMaxAttempts: 1,
+} as unknown as AppConfigService);
+
+/** Reach the worker's private dead-letter path without running claim() (which scans QUEUED rows
+ * globally — unsafe on a shared DB). */
+type MarkFailure = (
+  comm: {
+    id: string;
+    campaignId: string;
+    channel: string;
+    recipientAddress: string;
+    renderedMessage: string;
+    attemptCount: number;
+  },
+  reason: string,
+  retryable: boolean,
+) => Promise<"retry" | "dead" | "noop">;
 
 const RUN = randomUUID().slice(0, 8);
 const workspaceId = `ws_test_${RUN}`;
@@ -243,6 +264,71 @@ describe.skipIf(!runDbTests)("receipts concurrency + reconcile (DB)", () => {
       select: { status: true },
     });
     expect(finalCamp?.status).toBe("COMPLETED");
+  }, DB_TIMEOUT_MS);
+
+  it("FIX 4: a worker dead-letter appends a FAILED event so failedCount survives completion", async () => {
+    const campaignId = await newCampaign();
+    const commId = await newComm(campaignId, "QUEUED");
+    // Park nextAttemptAt in the future so a live send-worker draining this shared DB can't claim
+    // the row out from under us (claim predicate requires nextAttemptAt <= now). markFailure
+    // guards only on status='QUEUED', so the dead-letter transition below still fires.
+    await prisma.communication.update({
+      where: { id: commId },
+      data: { nextAttemptAt: new Date(Date.now() + 3_600_000) },
+    });
+
+    // Drive the permanent-failure dead-letter directly (retryable=false, attemptCount 0 →
+    // 1 = workerMaxAttempts). This is the path a 4xx contract mismatch from the stub takes.
+    const markFailure = (worker as unknown as { markFailure: MarkFailure }).markFailure.bind(
+      worker,
+    );
+    const outcome = await markFailure(
+      {
+        id: commId,
+        campaignId,
+        channel: "EMAIL",
+        recipientAddress: "x@example.com",
+        renderedMessage: "hi",
+        attemptCount: 0,
+      },
+      "channel-stub responded 400: messageId, message, channel, and callbackUrl are required",
+      false,
+    );
+    expect(outcome).toBe("dead");
+
+    // The comm is FAILED and — the fix — carries a FAILED event tagged source=send-worker.
+    const comm = await prisma.communication.findUnique({
+      where: { id: commId },
+      select: { status: true, failureReason: true },
+    });
+    expect(comm?.status).toBe("FAILED");
+    expect(comm?.failureReason).toContain("responded 400");
+
+    const failedEvents = await prisma.communicationEvent.findMany({
+      where: { communicationId: commId, type: "FAILED" },
+      select: { payload: true },
+    });
+    expect(failedEvents).toHaveLength(1);
+    expect((failedEvents[0]?.payload as Record<string, unknown>).source).toBe("send-worker");
+
+    // Worker bumped failedCount to 1…
+    let camp = await prisma.campaign.findUnique({
+      where: { id: campaignId },
+      select: { failedCount: true, status: true },
+    });
+    expect(camp?.failedCount).toBe(1);
+
+    // …and the sweep COMPLETES the campaign WITHOUT zeroing it. recomputeCounters derives
+    // failedCount from FAILED events, which now exist — this is the regression guard: before the
+    // fix (status-only dead-letter, no event) this recompute reset failedCount to 0.
+    const result = await reconcile.reconcileCampaign(campaignId);
+    expect(result.completed).toBe(true);
+    camp = await prisma.campaign.findUnique({
+      where: { id: campaignId },
+      select: { failedCount: true, status: true },
+    });
+    expect(camp?.status).toBe("COMPLETED");
+    expect(camp?.failedCount).toBe(1);
   }, DB_TIMEOUT_MS);
 
   it("FIX 2: sweep never downgrades a correctly-advanced comm and is idempotent", async () => {

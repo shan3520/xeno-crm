@@ -78,8 +78,10 @@ export function LaunchPanel({ segment, message }: Props) {
                 Campaign launched
               </h3>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                {launched.audienceSize.toLocaleString()} {meta.label} messages
-                queued and now sending
+                {(
+                  launched.audienceSize - launched.skippedNoAddress
+                ).toLocaleString()}{" "}
+                {meta.label} messages queued and now sending
                 {launched.skippedNoAddress > 0
                   ? ` · ${launched.skippedNoAddress.toLocaleString()} skipped (no address)`
                   : ""}

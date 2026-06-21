@@ -161,9 +161,17 @@ export class SendWorkerService {
         // 429 (throttle) and 5xx (incl. Render cold-start 502/503/504) are transient — the
         // stub is waking or overloaded, not refusing the request. Retry without burning the
         // dead-letter budget. Other 4xx (bad request, etc.) are permanent.
+        //
+        // Include a short snippet of the response body in the reason: a permanent 4xx is almost
+        // always a payload/contract mismatch (e.g. a divergent stub rejecting the send shape),
+        // and surfacing the stub's own error here makes that visible in failureReason and the
+        // analytics Failures breakdown instead of an opaque "responded 400".
+        const detail = (await res.text().catch(() => "")).trim().slice(0, 200);
         return {
           ok: false,
-          reason: `channel-stub responded ${res.status}`,
+          reason: detail
+            ? `channel-stub responded ${res.status}: ${detail}`
+            : `channel-stub responded ${res.status}`,
           retryable: isTransientStatus(res.status),
         };
       }
@@ -262,6 +270,27 @@ export class SendWorkerService {
         },
       });
       if (upd.count !== 1) return "noop";
+
+      // Append a FAILED event so the append-only log stays the source of truth for this terminal
+      // state. Without it, the reconcile sweep's recomputeCounters (which derives failedCount from
+      // FAILED *events*) resets this comm's failure to 0 at completion — a worker dead-letter that
+      // never produced a stub callback would otherwise vanish from the funnel. Deterministic key:
+      // a comm dead-letters at most once (guarded by the QUEUED→FAILED transition above), and
+      // skipDuplicates keeps a re-run a no-op. occurredAt=now: a worker-side send failure has no
+      // provider timestamp, and FAILED is terminal-dominant in the projection regardless of time.
+      await tx.communicationEvent.createMany({
+        data: [
+          {
+            communicationId: comm.id,
+            type: "FAILED",
+            occurredAt: now,
+            payload: { reason: reason.slice(0, 500), source: "send-worker" },
+            idempotencyKey: `send-worker-failed:${comm.id}`,
+          },
+        ],
+        skipDuplicates: true,
+      });
+
       await tx.campaign.update({
         where: { id: comm.campaignId },
         data: { failedCount: { increment: 1 } },
