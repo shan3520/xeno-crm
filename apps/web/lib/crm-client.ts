@@ -10,6 +10,16 @@ import type { CampaignStatsResponse } from "@/lib/analytics-api";
 
 const BASE = process.env.CRM_API_URL ?? "http://localhost:3001";
 
+/**
+ * Default per-call timeout. The CRM is the sole DB writer, and the /api/chat route awaits some of
+ * these calls (createThread) before it can start streaming — so an UN-BOUNDED fetch here can hang
+ * an entire chat turn with no headers and no error (the console then spins on "Thinking…" forever
+ * if e.g. chat-threads is slow or its table is locked). Bounding every call turns a hung/slow CRM
+ * into a fast typed failure the callers already handle (try/catch or .catch), never a frozen turn.
+ * Overridable via CRM_API_TIMEOUT_MS; a caller may still pass its own AbortSignal to opt out.
+ */
+const TIMEOUT_MS = Number(process.env.CRM_API_TIMEOUT_MS) || 8000;
+
 export class CrmApiError extends Error {
   constructor(
     readonly status: number,
@@ -24,6 +34,9 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}/${path}`, {
     ...init,
     cache: "no-store",
+    // A hung/slow CRM must not hang the caller (esp. the chat route, which awaits createThread
+    // before streaming). Bound every call unless the caller supplied its own signal.
+    signal: init?.signal ?? AbortSignal.timeout(TIMEOUT_MS),
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
   });
   if (!res.ok) {

@@ -98,7 +98,11 @@ export async function POST(req: Request): Promise<Response> {
   }
   const lastUser = [...incoming].reverse().find((m) => m.role === "user");
   if (threadId && lastUser) {
-    await crm
+    // Fire-and-forget: persisting the user turn is best-effort and must NEVER gate the stream.
+    // Awaiting it (through a CRM call) is what froze the whole turn when chat-threads hung — the
+    // response couldn't start until this resolved. createThread above stays awaited (its id feeds
+    // the x-thread-id header) but is now bounded by the crm-client timeout, so it can't hang either.
+    void crm
       .appendMessages(threadId, [{ role: "USER", content: messageText(lastUser) }])
       .catch(() => undefined);
   }
