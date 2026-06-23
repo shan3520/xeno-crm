@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import dynamic from "next/dynamic";
 import {
   AlertCircle,
@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
+import { ApiError } from "@/lib/analytics-api";
 import { useCampaignStats } from "@/hooks/use-campaign-stats";
 import { StatsGrid } from "@/components/charts/stats-grid";
 import { RevenueCard } from "@/components/charts/revenue-card";
@@ -61,7 +62,25 @@ const STATUS_STYLES: Record<
   FAILED: { bg: "bg-destructive/15", text: "text-destructive-foreground" },
 };
 
-function StatusBadge({ status }: { status: CampaignStatus }) {
+function StatusBadge({
+  status,
+  delivered,
+  audienceSize,
+}: {
+  status: CampaignStatus;
+  delivered?: number;
+  audienceSize?: number;
+}) {
+  // A campaign that completed but reached nobody is NOT a success — never badge it launch-green.
+  const zeroDelivery =
+    status === "COMPLETED" && delivered === 0 && (audienceSize ?? 0) > 0;
+  if (zeroDelivery) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/15 px-3 py-1 text-xs font-medium text-destructive-foreground">
+        Completed · 0 delivered
+      </span>
+    );
+  }
   const s = STATUS_STYLES[status] ?? STATUS_STYLES.DRAFT;
   return (
     <span
@@ -136,27 +155,37 @@ function DetailSkeleton() {
 // ─── Error state ────────────────────────────────────────────────────
 
 function ErrorState({
+  title,
   message,
   onRetry,
 }: {
+  title: string;
   message: string;
-  onRetry: () => void;
+  // Omitted for non-retryable errors (e.g. a 404) — a back link is shown instead.
+  onRetry?: () => void;
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
       <div className="rounded-2xl bg-destructive/10 p-4">
         <AlertCircle className="h-10 w-10 text-destructive" aria-hidden="true" />
       </div>
-      <h3 className="mt-4 text-lg font-medium">
-        Failed to load campaign stats
-      </h3>
+      <h3 className="mt-4 text-lg font-medium">{title}</h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">{message}</p>
-      <button
-        onClick={onRetry}
-        className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
-      >
-        Retry
-      </button>
+      {onRetry ? (
+        <button
+          onClick={onRetry}
+          className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+        >
+          Retry
+        </button>
+      ) : (
+        <Link
+          href="/campaigns"
+          className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+        >
+          Back to campaigns
+        </Link>
+      )}
     </div>
   );
 }
@@ -170,6 +199,13 @@ export default function CampaignDetailPage() {
     useCampaignStats(campaignId);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // This is a client route (no generateMetadata), so set the per-campaign tab title here
+  // instead of inheriting the generic "Looms · Campaign Console".
+  const campaignName = data?.campaign.name;
+  useEffect(() => {
+    if (campaignName) document.title = `${campaignName} · Looms`;
+  }, [campaignName]);
 
   const isLive =
     data?.campaign.status === "SENDING" ||
@@ -201,8 +237,23 @@ export default function CampaignDetailPage() {
           All campaigns
         </Link>
         <ErrorState
-          message={error instanceof Error ? error.message : "Unknown error"}
-          onRetry={() => void refetch()}
+          title={
+            error instanceof ApiError && error.status === 404
+              ? "Campaign not found"
+              : "Failed to load campaign stats"
+          }
+          message={
+            error instanceof ApiError && error.status === 404
+              ? "This campaign doesn't exist or may have been removed."
+              : error instanceof Error
+                ? error.message
+                : "Unknown error"
+          }
+          onRetry={
+            error instanceof ApiError && error.status === 404
+              ? undefined
+              : () => void refetch()
+          }
         />
       </div>
     );
@@ -257,7 +308,11 @@ export default function CampaignDetailPage() {
           </h1>
           <p className="text-sm text-muted-foreground">{campaign.goal}</p>
           <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={campaign.status} />
+            <StatusBadge
+              status={campaign.status}
+              delivered={funnel.delivered}
+              audienceSize={campaign.audienceSize}
+            />
             <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
               <ChannelIcon className="h-3 w-3" aria-hidden="true" />
               {channelMeta.label}

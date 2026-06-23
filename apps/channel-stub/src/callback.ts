@@ -1,12 +1,18 @@
 import type { ReceiptEvent } from "@xeno/shared";
 
-const MAX_RETRIES = 3;
-const BASE_BACKOFF_MS = 200;
+// Retry budget is sized to outlast a CRM cold start. The CRM runs on a free dyno that can be
+// asleep (~17–40s to wake) exactly when a callback fires; a short ~1.4s budget would exhaust all
+// retries while it boots and DROP the receipt — and a dropped DELIVERED later gets reconciled to
+// FAILED, under-reporting a genuinely-delivered comm. With capped exponential backoff the total
+// window spans ~30s (250,500,1000,2000,4000,8000,8000,8000ms), covering a typical wake.
+const MAX_RETRIES = 8;
+const BASE_BACKOFF_MS = 250;
+const MAX_BACKOFF_MS = 8000;
 
 /**
  * POST a ReceiptEvent to the CRM's receipt endpoint.
  *
- * Retries up to MAX_RETRIES times with exponential backoff on failure
+ * Retries up to MAX_RETRIES times with capped exponential backoff on failure
  * (non-2xx response or network error). On final failure, logs a warning
  * and silently drops — the stub must never crash or block other sends
  * because the CRM is temporarily unreachable.
@@ -45,7 +51,7 @@ export async function postReceipt(
 
     // Wait before retrying (skip wait on final attempt)
     if (attempt < MAX_RETRIES) {
-      const backoff = BASE_BACKOFF_MS * Math.pow(2, attempt);
+      const backoff = Math.min(BASE_BACKOFF_MS * Math.pow(2, attempt), MAX_BACKOFF_MS);
       await sleep(backoff);
     }
   }

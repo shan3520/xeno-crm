@@ -29,7 +29,11 @@ function formatNumber(n: number): string {
 }
 
 function formatRate(rate: number): string {
-  return `${(rate * 100).toFixed(1)}%`;
+  // Clamp to [0, 100%]: during a live send, out-of-order lifecycle callbacks can briefly make a
+  // stage's numerator exceed its denominator (e.g. opened>delivered), which would otherwise render
+  // an impossible rate like "127.3%". It reconciles as the lagging callbacks land.
+  const clamped = Math.max(0, Math.min(rate, 1));
+  return `${(clamped * 100).toFixed(1)}%`;
 }
 
 export function StatsGrid({ funnel, rates, channel, className }: StatsGridProps) {

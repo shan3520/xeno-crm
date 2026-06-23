@@ -28,6 +28,14 @@ export class SegmentCompileError extends Error {
 
 const DAY_MS = 86_400_000;
 
+/**
+ * Bounds on rule complexity. A pathologically deep or wide tree (e.g. 100 nested groups)
+ * otherwise reaches Postgres and 500s with "recursion limit exceeded" — a DoS + info-leak
+ * vector. Real rules are 1–3 levels and a handful of conditions; these caps are generous.
+ */
+const MAX_SEGMENT_DEPTH = 12;
+const MAX_SEGMENT_NODES = 500;
+
 const FIELD_SET: ReadonlySet<string> = new Set(SEGMENT_FIELDS);
 const OPERATOR_SET: ReadonlySet<string> = new Set(SEGMENT_OPERATORS);
 
@@ -261,9 +269,23 @@ function compileLeaf(leaf: SegmentLeaf): Prisma.CustomerWhereInput {
   }
 }
 
-function compileNode(node: SegmentNode): Prisma.CustomerWhereInput {
+function compileNode(
+  node: SegmentNode,
+  depth: number,
+  counter: { n: number },
+): Prisma.CustomerWhereInput {
+  if (depth > MAX_SEGMENT_DEPTH) {
+    throw new SegmentCompileError(
+      `Segment rule is nested too deeply (max ${MAX_SEGMENT_DEPTH} levels)`,
+    );
+  }
+  if ((counter.n += 1) > MAX_SEGMENT_NODES) {
+    throw new SegmentCompileError(
+      `Segment rule has too many conditions (max ${MAX_SEGMENT_NODES})`,
+    );
+  }
   if ("op" in node) {
-    const children = node.conditions.map(compileNode);
+    const children = node.conditions.map((c) => compileNode(c, depth + 1, counter));
     switch (node.op) {
       case "AND":
         return { AND: children };
@@ -287,5 +309,5 @@ function compileNode(node: SegmentNode): Prisma.CustomerWhereInput {
 export function compileSegmentDefinition(
   definition: SegmentDefinition,
 ): Prisma.CustomerWhereInput {
-  return compileNode(definition);
+  return compileNode(definition, 1, { n: 0 });
 }

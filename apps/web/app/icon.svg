@@ -1,0 +1,18 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D4A84B"/>
+      <stop offset="1" stop-color="#B07F30"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="url(#g)"/>
+  <!-- Loom/weave mark: interlaced warp + weft threads -->
+  <g stroke="#1A140A" stroke-width="2" stroke-linecap="round" opacity="0.92">
+    <path d="M11 8 V24"/>
+    <path d="M16 8 V24"/>
+    <path d="M21 8 V24"/>
+    <path d="M8 12 H24"/>
+    <path d="M8 16 H24"/>
+    <path d="M8 20 H24"/>
+  </g>
+</svg>

@@ -19,10 +19,31 @@ const mono = Geist_Mono({
   display: "swap",
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://xeno-crm-web.vercel.app";
+const DESCRIPTION =
+  "AI-native mini CRM: state your intent in plain English, review editable segment, message, and launch cards.";
+
 export const metadata: Metadata = {
-  title: "Looms · Campaign Console",
-  description:
-    "AI-native mini CRM: state your intent in plain English, review editable segment, message, and launch cards.",
+  metadataBase: new URL(SITE_URL),
+  // `template` makes every page render as "<Page> · Looms" (one separator, site-wide).
+  title: {
+    default: "Looms · Campaign Console",
+    template: "%s · Looms",
+  },
+  description: DESCRIPTION,
+  applicationName: "Looms",
+  openGraph: {
+    type: "website",
+    siteName: "Looms",
+    url: SITE_URL,
+    title: "Looms · From plain English to a launch you control",
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Looms · From plain English to a launch you control",
+    description: DESCRIPTION,
+  },
 };
 
 // viewport-fit: cover exposes the env(safe-area-inset-*) values so the bottom-docked

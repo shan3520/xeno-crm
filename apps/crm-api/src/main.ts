@@ -19,6 +19,12 @@ async function bootstrap(): Promise<void> {
   const config = app.get(AppConfigService);
   app.enableCors({ origin: config.webOrigin, credentials: true });
 
+  // Don't advertise the framework/version to clients (defense in depth, info disclosure).
+  const httpInstance = app.getHttpAdapter().getInstance() as {
+    disable?: (setting: string) => void;
+  };
+  httpInstance.disable?.("x-powered-by");
+
   // Fire OnApplicationShutdown hooks on SIGINT/SIGTERM so the send-worker loop (and Prisma)
   // shut down cleanly — no orphaned timers, no half-open pool.
   app.enableShutdownHooks();

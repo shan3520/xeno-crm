@@ -26,21 +26,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const res = host.switchToHttp().getResponse<Response>();
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    const status = this.resolveStatus(exception);
+    const isServerError = status >= HttpStatus.INTERNAL_SERVER_ERROR;
 
+    // Never leak internal error detail (Prisma/DB messages, stack frames) on a 5xx — those
+    // are logged server-side below but returned to the client as a generic message. Client
+    // (4xx) errors keep their specific, safe message.
     const body: ErrorResponse = {
       statusCode: status,
       error: STATUS_CODES[status] ?? "Error",
-      message: this.extractMessage(exception),
+      message: isServerError ? "Internal server error" : this.extractMessage(exception),
       requestId: getRequestId(),
     };
 
-    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+    if (isServerError) {
       this.logger.error(
-        `${status} ${body.message}`,
+        `${status} ${this.extractMessage(exception)}`,
         exception instanceof Error ? exception.stack : undefined,
         "Exception",
       );
@@ -49,6 +50,24 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     res.status(status).json(body);
+  }
+
+  /**
+   * Resolve the HTTP status. HttpExceptions carry their own; other libraries (e.g. the
+   * body-parser PayloadTooLarge → 413) throw plain Errors that carry a numeric `status`/
+   * `statusCode` — honor those so they don't all collapse to 500. Everything else is a 500.
+   */
+  private resolveStatus(exception: unknown): number {
+    if (exception instanceof HttpException) {
+      return exception.getStatus();
+    }
+    const carried =
+      (exception as { status?: unknown; statusCode?: unknown } | null)?.status ??
+      (exception as { statusCode?: unknown } | null)?.statusCode;
+    if (typeof carried === "number" && carried >= 400 && carried < 600) {
+      return carried;
+    }
+    return HttpStatus.INTERNAL_SERVER_ERROR;
   }
 
   private extractMessage(exception: unknown): string {

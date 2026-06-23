@@ -39,7 +39,25 @@ const STATUS_STYLES: Record<
   FAILED: { bg: "bg-destructive/15", text: "text-destructive-foreground" },
 };
 
-function StatusBadge({ status }: { status: CampaignStatus }) {
+function StatusBadge({
+  status,
+  delivered,
+  audienceSize,
+}: {
+  status: CampaignStatus;
+  delivered?: number;
+  audienceSize?: number;
+}) {
+  // A campaign that completed but reached nobody is not a success — don't badge it launch-green.
+  const zeroDelivery =
+    status === "COMPLETED" && delivered === 0 && (audienceSize ?? 0) > 0;
+  if (zeroDelivery) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive-foreground">
+        0 delivered
+      </span>
+    );
+  }
   const s = STATUS_STYLES[status] ?? STATUS_STYLES.DRAFT;
   return (
     <span
@@ -70,7 +88,10 @@ function ChannelIcon({ channel }: { channel: Channel }) {
 }
 
 function pct(value: number): string {
-  return `${(value * 100).toFixed(1)}%`;
+  // Clamp to [0, 100%]: out-of-order callbacks during a live send can briefly push a rate
+  // above 1 (e.g. opened>delivered); never render an impossible percentage.
+  const clamped = Math.max(0, Math.min(value, 1));
+  return `${(clamped * 100).toFixed(1)}%`;
 }
 
 function formatRevenue(value: string): string {
@@ -226,7 +247,11 @@ function CampaignRow({ campaign }: { campaign: CampaignSummaryRow }) {
         </div>
       </td>
       <td className="px-4 py-3">
-        <StatusBadge status={campaign.status} />
+        <StatusBadge
+          status={campaign.status}
+          delivered={campaign.delivered}
+          audienceSize={campaign.audienceSize}
+        />
       </td>
       <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
         {campaign.audienceSize.toLocaleString()}
@@ -308,7 +333,11 @@ function CampaignCard({ campaign }: { campaign: CampaignSummaryRow }) {
             {campaign.name}
           </span>
         </div>
-        <StatusBadge status={campaign.status} />
+        <StatusBadge
+          status={campaign.status}
+          delivered={campaign.delivered}
+          audienceSize={campaign.audienceSize}
+        />
       </div>
 
       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">

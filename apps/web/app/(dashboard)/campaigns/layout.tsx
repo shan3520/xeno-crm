@@ -4,7 +4,8 @@ import Link from "next/link";
 import { MessageSquarePlus, Wand2 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Campaigns | Looms",
+  // Renders as "Campaigns · Looms" via the root title template.
+  title: "Campaigns",
   description: "Campaign analytics and performance dashboards.",
 };
 

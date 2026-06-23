@@ -23,7 +23,8 @@ import {
 } from "@/components/landing/previews";
 
 export const metadata: Metadata = {
-  title: "Looms · From plain English to a launch you control",
+  // `absolute` bypasses the root "%s · Looms" template so the homepage title isn't doubled.
+  title: { absolute: "Looms · From plain English to a launch you control" },
   description:
     "An AI-native campaign console for marketing and engagement. State your intent in plain English; review an editable segment, message, and launch; track every send on an honest, append-only log.",
 };
