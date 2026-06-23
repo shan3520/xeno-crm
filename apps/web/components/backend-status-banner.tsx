@@ -38,7 +38,7 @@ export function BackendStatusBanner() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-x-0 top-4 z-[60] flex justify-center px-4"
+      className="fixed inset-x-0 bottom-4 z-[60] flex justify-center px-4"
     >
       <div className="flex max-w-xl items-center gap-3 rounded-2xl border border-warning/30 bg-background/90 px-4 py-3 text-sm shadow-lg backdrop-blur">
         <Loader2 className="h-4 w-4 shrink-0 animate-spin text-warning" />

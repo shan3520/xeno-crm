@@ -58,9 +58,11 @@ export function SegmentPreview() {
             <Users className="h-3.5 w-3.5" aria-hidden="true" />
             Audience segment
           </div>
-          <h3 className="mt-1 truncate text-base font-semibold tracking-tight text-foreground">
+          {/* A decorative preview label, not a document heading — kept as <p> so the page
+              outline doesn't skip H1→H3 (these cards sit in the hero, before the first H2). */}
+          <p className="mt-1 truncate text-base font-semibold tracking-tight text-foreground">
             Lapsed Mumbai high-spenders
-          </h3>
+          </p>
           <p className="mt-0.5 text-sm text-muted-foreground">
             Win back valuable customers who have gone quiet.
           </p>
@@ -126,9 +128,10 @@ export function MessagePreview() {
             <MessageSquareText className="h-3.5 w-3.5" aria-hidden="true" />
             Message copy
           </div>
-          <h3 className="mt-1 text-base font-semibold tracking-tight text-foreground">
+          {/* Decorative preview label, not a heading (see note on the segment card above). */}
+          <p className="mt-1 text-base font-semibold tracking-tight text-foreground">
             Draft for review
-          </h3>
+          </p>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">
           Email
