@@ -19,6 +19,10 @@ export const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
+  // Optional shared secret for authenticating channel-stub → /receipts callbacks (HMAC-SHA256).
+  // When EMPTY (default), signature verification is OFF — fully backward compatible. Set the SAME
+  // value here AND on the channel-stub (CALLBACK_HMAC_SECRET) to require signed, verified receipts.
+  CALLBACK_HMAC_SECRET: z.string().default(""),
 });
 
 export type AppConfig = z.infer<typeof envSchema>;

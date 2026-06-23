@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 
+import { ReceiptSignatureGuard } from "./receipt-signature.guard";
 import { ReceiptsController } from "./receipts.controller";
 import { ReceiptsService } from "./receipts.service";
 import { ReconcileRunner } from "./reconcile.runner";
@@ -15,7 +16,7 @@ import { ReconcileService } from "./reconcile.service";
  */
 @Module({
   controllers: [ReceiptsController],
-  providers: [ReceiptsService, ReconcileService, ReconcileRunner],
+  providers: [ReceiptsService, ReconcileService, ReconcileRunner, ReceiptSignatureGuard],
   exports: [ReconcileService],
 })
 export class ReceiptsModule {}

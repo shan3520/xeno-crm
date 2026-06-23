@@ -1,8 +1,14 @@
-import { Body, Controller, HttpCode, Post } from "@nestjs/common";
+import { Body, Controller, HttpCode, Post, UseGuards } from "@nestjs/common";
+import { SkipThrottle } from "@nestjs/throttler";
 
 import { ReceiptDto, type ReceiptResult } from "./receipts.dto";
+import { ReceiptSignatureGuard } from "./receipt-signature.guard";
 import { ReceiptsService } from "./receipts.service";
 
+// Callbacks arrive in bursts from the channel-stub (one IP) during a send — never rate-limit them;
+// they're authenticated by HMAC signature instead (see ReceiptSignatureGuard).
+@SkipThrottle()
+@UseGuards(ReceiptSignatureGuard)
 @Controller("receipts")
 export class ReceiptsController {
   constructor(private readonly receipts: ReceiptsService) {}

@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
-import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from "@nestjs/core";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { ZodValidationPipe } from "nestjs-zod";
 
 import { AppController } from "./app.controller";
@@ -25,6 +26,15 @@ import { SendWorkerModule } from "./send-worker/send-worker.module";
  */
 @Module({
   imports: [
+    // Per-IP rate limit (generous default so normal use + polling is never throttled; tune via
+    // RATE_LIMIT_TTL_MS / RATE_LIMIT_MAX). /health and /receipts opt out via @SkipThrottle so the
+    // keepalive cron and the channel-stub's callback burst are never blocked.
+    ThrottlerModule.forRoot([
+      {
+        ttl: Number(process.env.RATE_LIMIT_TTL_MS) || 60_000,
+        limit: Number(process.env.RATE_LIMIT_MAX) || 200,
+      },
+    ]),
     AppConfigModule,
     PrismaModule,
     CustomersModule,
@@ -40,6 +50,7 @@ import { SendWorkerModule } from "./send-worker/send-worker.module";
   controllers: [AppController],
   providers: [
     AppLogger,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_PIPE, useClass: ZodValidationPipe },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },

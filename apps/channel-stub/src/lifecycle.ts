@@ -69,13 +69,13 @@ export function scheduleLifecycle(params: LifecycleParams): void {
     // producing genuine out-of-order arrivals at the CRM
     const fireDelay = randomBetween(config.minDelayMs, config.maxDelayMs);
 
-    schedulePost(config.crmReceiptUrl, receipt, fireDelay, logger);
+    schedulePost(config.crmReceiptUrl, receipt, fireDelay, logger, config.callbackHmacSecret);
 
     // Chaos: with probability DUPLICATE_PCT, send the exact same event
     // again (same idempotencyKey) so the CRM's dedup logic is exercised
     if (Math.random() < config.duplicatePct) {
       const dupeDelay = fireDelay + randomBetween(100, 2_000);
-      schedulePost(config.crmReceiptUrl, receipt, dupeDelay, logger);
+      schedulePost(config.crmReceiptUrl, receipt, dupeDelay, logger, config.callbackHmacSecret);
       logger.info(`duplicate scheduled for ${eventType} of ${communicationId}`);
     }
   }
@@ -158,9 +158,10 @@ function schedulePost(
   receipt: ReceiptEvent,
   delayMs: number,
   logger: { warn: (msg: string) => void; error: (msg: string) => void },
+  secret: string,
 ): void {
   setTimeout(() => {
-    void postReceipt(url, receipt, logger);
+    void postReceipt(url, receipt, logger, secret);
   }, delayMs);
 }
 

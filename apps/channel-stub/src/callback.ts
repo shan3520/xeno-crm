@@ -1,3 +1,5 @@
+import { createHmac } from "node:crypto";
+
 import type { ReceiptEvent } from "@xeno/shared";
 
 // Retry budget is sized to outlast a CRM cold start. The CRM runs on a free dyno that can be
@@ -21,14 +23,18 @@ export async function postReceipt(
   url: string,
   event: ReceiptEvent,
   logger: { warn: (msg: string) => void; error: (msg: string) => void },
+  secret = "",
 ): Promise<void> {
+  // Serialize once so the signed bytes are identical to the sent bytes (and stable across retries).
+  const reqBody = JSON.stringify(event);
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (secret) {
+    headers["x-signature"] = createHmac("sha256", secret).update(reqBody).digest("hex");
+  }
+
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(event),
-      });
+      const response = await fetch(url, { method: "POST", headers, body: reqBody });
 
       if (response.ok) {
         return; // Success — done

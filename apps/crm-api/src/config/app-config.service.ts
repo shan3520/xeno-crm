@@ -54,4 +54,9 @@ export class AppConfigService {
   get nodeEnv(): AppConfig["NODE_ENV"] {
     return this.get("NODE_ENV");
   }
+
+  /** Shared HMAC secret for receipt-callback auth; empty string means verification is disabled. */
+  get callbackHmacSecret(): string {
+    return this.get("CALLBACK_HMAC_SECRET");
+  }
 }

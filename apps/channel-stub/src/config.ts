@@ -14,6 +14,9 @@ const ConfigSchema = z
   .object({
     port: z.coerce.number().int().positive().default(3002),
     crmReceiptUrl: z.string().url({ message: "CRM_RECEIPT_URL must be a valid URL" }),
+    // Optional shared secret: when set (and matching crm-api's CALLBACK_HMAC_SECRET), each receipt
+    // POST is signed with an HMAC-SHA256 x-signature header. Empty = unsigned (backward compatible).
+    callbackHmacSecret: z.string().default(""),
     deliveredRate: probability.default(0.92),
     openRate: probability.default(0.55),
     clickRate: probability.default(0.3),
@@ -38,6 +41,7 @@ export function loadConfig(): Config {
   const result = ConfigSchema.safeParse({
     port: process.env["PORT"],
     crmReceiptUrl: process.env["CRM_RECEIPT_URL"],
+    callbackHmacSecret: process.env["CALLBACK_HMAC_SECRET"],
     deliveredRate: process.env["DELIVERED_RATE"],
     openRate: process.env["OPEN_RATE"],
     clickRate: process.env["CLICK_RATE"],
