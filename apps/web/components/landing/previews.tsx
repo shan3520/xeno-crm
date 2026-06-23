@@ -86,7 +86,7 @@ export function SegmentPreview() {
           {chips.map((c) => (
             <span
               key={c}
-              className="rounded-full border border-border/70 bg-secondary/60 px-2.5 py-1 text-xs font-medium text-secondary-foreground"
+              className="rounded-full border border-border/70 bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground"
             >
               {c}
             </span>

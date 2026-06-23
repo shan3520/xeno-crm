@@ -107,7 +107,7 @@ function Hero() {
       <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
         {/* Left column paints immediately — no reveal gate on the LCP headline. */}
         <div>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/50 px-3 py-1 text-xs font-medium text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5 text-brand" aria-hidden="true" />
             AI-native campaign console
           </span>

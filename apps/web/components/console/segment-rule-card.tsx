@@ -250,7 +250,7 @@ export function SegmentRuleCard({ toolCallId, result, onActive }: Props) {
             {leaves.map((ref, i) => (
               <span
                 key={i}
-                className="rounded-full border border-border/70 bg-secondary/60 px-2.5 py-1 text-xs font-medium text-secondary-foreground"
+                className="rounded-full border border-border/70 bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground"
               >
                 {readableLeaf(ref.leaf)}
               </span>
