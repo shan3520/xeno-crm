@@ -39,7 +39,7 @@ services:
       # Leave unset to run migrations over the pooled URL.
       - key: MIGRATE_DATABASE_URL
         sync: false
-      # Public URL of the channel-stub service (https://xeno-channel-stub.onrender.com).
+      # Public URL of the channel-stub service (https://xeno-channel-stub-fena.onrender.com).
       - key: CHANNEL_STUB_URL
         sync: false
       # This service's own public URL (https://xeno-crm-api.onrender.com).

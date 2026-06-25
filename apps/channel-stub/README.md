@@ -46,7 +46,11 @@ With probability `DUPLICATE_PCT`, an event is delivered to the CRM **twice** wit
 
 ### Resilience
 
-If a callback POST to the CRM fails (non-2xx or network error), the stub retries up to **3 times** with exponential backoff (200ms → 400ms → 800ms), then drops the event. A CRM being temporarily down will never crash the stub or block other sends.
+If a callback POST to the CRM fails (non-2xx or network error), the stub retries up to **8 times** with capped exponential backoff (250ms → 500ms → 1s → 2s → 4s → 8s → 8s → 8s, capped at 8s), then drops the event. The ~30s total window is sized to outlast a CRM free-dyno cold start (~17–40s to wake), so a callback firing while the CRM boots isn't dropped — a dropped DELIVERED would otherwise get reconciled to FAILED. A CRM being temporarily down will never crash the stub or block other sends.
+
+### Signed callbacks (optional)
+
+When `CALLBACK_HMAC_SECRET` is set here **and** to the same value on crm-api, each receipt POST is signed with an `x-signature` header — an HMAC-SHA256 over the exact request body — which crm-api's `ReceiptSignatureGuard` verifies (rejecting missing/invalid signatures with `401`). An empty secret (the default) leaves callbacks unsigned and is fully backward-compatible.
 
 ## Environment variables
 
@@ -54,6 +58,7 @@ If a callback POST to the CRM fails (non-2xx or network error), the stub retries
 |---|---|---|---|
 | `PORT` | int | `3002` | Server listen port |
 | `CRM_RECEIPT_URL` | URL | — | **Required.** CRM receipt callback endpoint |
+| `CALLBACK_HMAC_SECRET` | string | `""` (off) | Shared secret; when set (matching crm-api's), each receipt POST is HMAC-SHA256-signed via an `x-signature` header. Empty = unsigned |
 | `DELIVERED_RATE` | 0–1 | `0.92` | Probability of SENT → DELIVERED |
 | `OPEN_RATE` | 0–1 | `0.55` | Probability of DELIVERED → OPENED |
 | `CLICK_RATE` | 0–1 | `0.30` | Probability of READ → CLICKED (or DELIVERED → CLICKED for SMS) |

@@ -102,14 +102,24 @@ driven by env-configurable rates: `DELIVERED_RATE`, `OPEN_RATE`, `CLICK_RATE`, `
 exercise out-of-order arrival). Each stage fires an asynchronous `POST /receipts`.
 
 Callbacks themselves are resilient: `postReceipt` ([callback.ts](../apps/channel-stub/src/callback.ts))
-retries up to 3× with exponential backoff and, on final failure, logs and drops — the stub must never
-crash or block other sends because the CRM is briefly unreachable.
+retries up to `MAX_RETRIES = 8`× with capped exponential backoff (`BASE_BACKOFF_MS = 250` → … →
+`MAX_BACKOFF_MS = 8000`, a ~30s total window) and, on final failure, logs and drops — the stub must
+never crash or block other sends because the CRM is briefly unreachable. The window is deliberately
+sized to outlast a CRM free-dyno cold start, so a callback firing while the CRM wakes isn't dropped
+(a dropped `DELIVERED` would later get reconciled to `FAILED`).
+
+When `CALLBACK_HMAC_SECRET` is configured on **both** services, each receipt POST is signed with an
+`x-signature` header — an HMAC-SHA256 over the exact request body — and crm-api's
+`ReceiptSignatureGuard` ([receipt-signature.guard.ts](../apps/crm-api/src/receipts/receipt-signature.guard.ts))
+verifies it (`401` on a missing/invalid signature). An empty secret (the default) leaves callbacks
+unsigned and is fully backward-compatible.
 
 ## 5. Receipts: idempotent, arrival-order-independent
 
-`POST /receipts` ([receipts.service.ts](../apps/crm-api/src/receipts/receipts.service.ts)) ingests one
-lifecycle callback (`delivered / opened / read / clicked / failed / converted`). Two invariants make
-this robust:
+`POST /receipts` ([receipts.controller.ts](../apps/crm-api/src/receipts/receipts.controller.ts)) ingests
+one lifecycle callback (`delivered / opened / read / clicked / failed / converted`). It is exempt from
+the global rate limiter (`@SkipThrottle`) so the stub's bursty callbacks during a send are never
+throttled; it relies on the optional HMAC signature for auth instead. Two invariants make this robust:
 
 ### Idempotency
 
@@ -140,9 +150,13 @@ rebuild them — maintained transactionally as receipts land.
 ## 6. The reconcile sweep
 
 Receipts can be dropped (the stub gives up after retries) or a projection can drift under rare races.
-A periodic **reconcile sweep** (`RECONCILE_INTERVAL_MS`, in-process in crm-api) recomputes campaign
-projections from the event log and advances campaigns to `COMPLETED` once their communications have all
-reached a terminal state. This is the self-healing backstop that keeps stats eventually-consistent.
+A periodic **reconcile sweep** (`RECONCILE_INTERVAL_MS`, in-process in crm-api;
+[reconcile.service.ts](../apps/crm-api/src/receipts/reconcile.service.ts)) heals three failure modes:
+it **re-projects** any comm whose stored status drifted behind its events (never downgrading); it
+**expires** a comm stuck at `SENT` past `RECEIPT_TIMEOUT_MS` (10 min) — whose in-memory callbacks were
+lost to a stub restart — by appending a synthetic `FAILED` event; and once no comm is in-flight it
+**recomputes** the receipt-owned campaign counters from the event sets and flips the campaign to
+`COMPLETED`. This is the self-healing backstop that keeps stats eventually-consistent.
 
 ## 7. Testing the loop under stress
 

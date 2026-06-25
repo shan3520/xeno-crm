@@ -12,7 +12,7 @@ Built for the **Xeno Engineering Take-Home — "Build an AI-Native Mini CRM for 
 | --- | --- |
 | 🌐 **Live app** | https://xeno-crm-web.vercel.app |
 | 🩺 crm-api health | https://xeno-crm-api.onrender.com/health |
-| 🩺 channel-stub health | https://xeno-channel-stub.onrender.com/health |
+| 🩺 channel-stub health | https://xeno-channel-stub-fena.onrender.com/health |
 
 > ⚠️ The backend runs on **free tiers** (Render + Neon) that sleep when idle, so the first request
 > after a cold period can take ~50s while services wake. **The app handles this gracefully** — it

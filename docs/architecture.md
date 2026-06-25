@@ -12,21 +12,7 @@ frozen contracts in `@xeno/shared`. Each service has one clear job.
 | **channel-stub** | Fastify | A fake messaging provider. Accepts `POST /send` and simulates the full message lifecycle, firing **asynchronous, jittered callbacks** back to crm-api `/receipts`. |
 | **Postgres (Neon)** | — | Single database owned by crm-api. |
 
-```
-  Browser ──► web (Next.js, Vercel)
-              │  console UI + AI orchestration (/api/chat)
-              │
-     REST     ▼                          POST /send
-  ┌────────────────────┐ ──────────────► ┌───────────────────────┐
-  │  crm-api (NestJS)  │                  │ channel-stub (Fastify) │
-  │  domain + Postgres │                  │ simulates the lifecycle│
-  │  queue + worker +  │ ◄────────────────│ fires jittered async   │
-  │  /receipts         │   POST /receipts │ callbacks              │
-  └─────────┬──────────┘                  └───────────────────────┘
-            │
-            ▼
-     Postgres (Neon)
-```
+![Looms architecture](architecture.png)
 
 Local ports: **web 3000 · crm-api 3001 · channel-stub 3002**.
 
@@ -54,7 +40,7 @@ Local ports: **web 3000 · crm-api 3001 · channel-stub 3002**.
 marketer types intent
       │
       ▼
-web /api/chat ── streamText (Vercel AI SDK) with 3 tools ──► LLM (Groq/NVIDIA/Gemini, fallback chain)
+web /api/chat ── streamText (Vercel AI SDK) with 3 tools ──► LLM (Groq → Gemini fallback chain; NVIDIA optional)
       │                                                          │
       │   tool: generate_segment_rule ──► crm-api POST /segments/preview (validate+compile+count+sample)
       │   tool: draft_message         ──► channel-appropriate copy with {{tokens}}
@@ -129,8 +115,14 @@ this scope" — is laid out explicitly in the
 - **AI route:** a config-driven provider fallback chain with a **per-provider timeout** — a slow or
   unavailable provider fails over to the next instead of stalling the turn; rate limits degrade to a
   typed "retry" surface rather than crashing.
-- **Channel-stub:** callbacks retry with backoff and never crash the stub if the CRM is briefly
-  unreachable.
+- **crm-api:** a per-IP **rate limiter** (`@nestjs/throttler`, generous default so polling is never
+  throttled; `/health` and `/receipts` opt out via `@SkipThrottle` so the keepalive cron and the
+  callback burst are never blocked). Receipt callbacks are authenticated by an **HMAC-SHA256 signature
+  over the raw body** (`ReceiptSignatureGuard`), gated by `CALLBACK_HMAC_SECRET` — empty (the default)
+  means verification is OFF, fully backward compatible; set the same secret on both services to require
+  signed, verified receipts.
+- **Channel-stub:** callbacks retry with capped exponential backoff (a **~30s budget sized to outlast
+  a CRM cold start**) and never crash the stub if the CRM is briefly unreachable.
 - **Free-tier ops:** GitHub Actions cron pings both `/health` URLs to mitigate Render cold starts;
   and the web app's **cold-start banner** ([`backend-status-banner.tsx`](../apps/web/components/backend-status-banner.tsx))
   pings crm-api `/health` on load — both *triggering* the wake-up and showing a calm

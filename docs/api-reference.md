@@ -11,9 +11,14 @@ Base URLs (local): **crm-api** `http://localhost:3001` · **channel-stub** `http
 
 ## crm-api (NestJS) — the domain & system of record
 
+Errors share one envelope: `{ statusCode, error, message, requestId }` (5xx messages are genericized
+to `"Internal server error"`; 4xx keep their specific message). A per-IP rate limit (200 requests / 60s,
+tunable via `RATE_LIMIT_MAX` / `RATE_LIMIT_TTL_MS`) returns **`429`** when exceeded; `/health` and
+`/receipts` are exempt.
+
 ### Health
 
-`GET /health` → `{ "status": "ok" }`
+`GET /health` → `{ "status": "ok", "service": "crm-api" }` (exempt from rate limiting).
 
 ### Ingest
 
@@ -84,7 +89,9 @@ segment DSL definition:
 }
 ```
 → `200 { "count": number, "sample": Customer[] }`. (The DSL fields/operators are documented in
-[ai-native.md](ai-native.md#the-segment-dsl). Non-whitelisted fields are rejected here.)
+[ai-native.md](ai-native.md#the-segment-dsl). Non-whitelisted fields/operators, operator/value
+mismatches, or a tree exceeding the complexity caps — depth > 12 or > 500 total nodes — are rejected
+here with **`400`**.)
 
 - **`POST /segments`** — persist a segment (`{ name, description?, definition, origin? }`), caching its
   evaluated count.
@@ -109,13 +116,16 @@ segment DSL definition:
 
 - `GET /campaigns` — list with status + counters. `GET /campaigns/:id` — one.
 - **`POST /campaigns/:id/launch`** — freeze the audience, write `QUEUED` communications, flip to
-  `SENDING`. Does **not** send. → `LaunchResponse { queued, skipped, … }`. Returns **`409`** if the
-  campaign isn't launchable (e.g. already `SENDING`).
+  `SENDING`. Does **not** send. → `LaunchResponse` (a `CampaignResponse` plus `skippedNoAddress` —
+  audience members dropped for lacking an address on the channel; the queued count lives in
+  `counters.queued`). Returns **`409`** if the campaign isn't launchable (e.g. already `SENDING`).
 
 ### Analytics
 
-- **`GET /campaigns/:id/stats`** — the campaign's funnel (`queued/sent/delivered/opened/read/clicked/
-  converted`), derived rates, and `attributedRevenue`.
+- **`GET /campaigns/:id/stats`** — `{ campaign, funnel, rates, attributedRevenue, failureBreakdown,
+  timeline }`: the funnel (`queued/sent/delivered/opened/read/clicked/converted/failed`), derived
+  `rates` (`deliveryRate/openRate/clickRate/conversionRate`), the `attributedRevenue` (Decimal string),
+  a `failureBreakdown` (`{ reason, count }[]`), and a `timeline` of time buckets.
 - **`GET /analytics/overview`** — workspace rollup across all campaigns (totals, delivery/open/click
   rates, revenue) for the dashboard.
 
@@ -138,6 +148,11 @@ returns `200` (a duplicate is a successful no-op). Body (`ReceiptEvent`):
 ```
 → `200 { "ok": true, "duplicate": boolean, "status"?: string }`
 
+When `CALLBACK_HMAC_SECRET` is set, requests must carry a valid `x-signature` HMAC-SHA256 over the
+raw body; a missing/invalid signature is rejected with **`401`**. The secret defaults to empty, in
+which case verification is off and all callbacks are accepted (backward compatible). This endpoint is
+exempt from rate limiting so the stub's callback burst is never throttled.
+
 ### Chat persistence (used by web `/api/chat`)
 
 - `POST /chat-threads` → `{ id }` — start a thread.
@@ -153,7 +168,6 @@ returns `200` (a duplicate is a successful no-op). Body (`ReceiptEvent`):
 ### Health
 
 `GET /health` → `{ "status": "ok", "service": "channel-stub" }`
-(also reports `received` / `inFlight` counters)
 
 ### Send
 

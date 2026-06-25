@@ -7,13 +7,13 @@ but are not a shipped theme. Verify all contrast against the dark canvas.
 
 ## Theme
 
-Cool, faintly blue-tinted neutrals on a near-black canvas. A single iris/indigo brand accent
+Warm, faintly amber-tinted neutrals on a near-black canvas. A single brass/gold brand accent
 carries all chrome (logo, primary buttons, focus, active nav, the user chat bubble). A
 deliberately desaturated **semantic family**, all tuned to one chroma band with hues spaced
 for distinction, color-codes the four AI artifact types so they read as one intentional set
 rather than raw framework hues. Mood: a calm, precise instrument — low ambient light, quiet
 confidence, nothing shouting. Depth comes from layered translucent surfaces, hairline borders,
-and tinted (never flat-black) shadows, plus one faint iris glow pinned behind the canvas.
+and tinted (never flat-black) shadows, plus one faint gold glow pinned behind the canvas.
 
 Strategy: **Restrained.** Tinted neutrals + one brand accent ≤ 10% of surface; semantic
 colors used only for meaning (artifact type, status, severity), never decoration.
@@ -27,14 +27,14 @@ OKLCH throughout. Tokens are defined as CSS custom properties and surfaced to Ta
 
 | Token | OKLCH | Role |
 |---|---|---|
-| `--background` | `0.17 0.006 264` | Near-black canvas, faint blue tint |
-| `--foreground` | `0.97 0.004 264` | Primary text |
-| `--card` | `0.215 0.008 264` | Raised surface (usually used at `/40`–`/60` opacity) |
-| `--popover` | `0.215 0.008 264` | Tooltips, menus |
-| `--secondary` | `0.27 0.007 264` | Chips, secondary buttons |
-| `--muted` | `0.27 0.007 264` | Muted fills |
-| `--muted-foreground` | `0.71 0.013 264` | Secondary text (AA-safe at base; do **not** dim below this for text < 14px) |
-| `--accent` | `0.3 0.009 264` | Hover surface |
+| `--background` | `0.165 0.004 75` | Near-black canvas, faint amber tint |
+| `--foreground` | `0.97 0.004 75` | Primary text |
+| `--card` | `0.215 0.005 75` | Raised surface (usually used at `/40`–`/60` opacity) |
+| `--popover` | `0.215 0.005 75` | Tooltips, menus |
+| `--secondary` | `0.27 0.005 75` | Chips, secondary buttons |
+| `--muted` | `0.27 0.005 75` | Muted fills |
+| `--muted-foreground` | `0.72 0.012 75` | Secondary text (AA-safe at base; do **not** dim below this for text < 14px) |
+| `--accent` | `0.3 0.006 75` | Hover surface |
 | `--border` | `1 0 0 / 9%` | Hairline borders (translucent white) |
 | `--input` | `1 0 0 / 13%` | Input borders |
 
@@ -42,20 +42,20 @@ OKLCH throughout. Tokens are defined as CSS custom properties and surfaced to Ta
 
 | Token | OKLCH | Role |
 |---|---|---|
-| `--primary` | `0.56 0.16 274` | Primary buttons, user chat bubble (L held at 0.56 so white foreground clears AA ≈4.7:1) |
-| `--primary-foreground` | `0.98 0.012 274` | Text on primary |
-| `--brand` | `0.68 0.15 274` | Brand iris **as text/icon on dark** (brighter than `--primary` for legibility) |
-| `--ring` | `0.62 0.155 274` | Focus ring |
+| `--primary` | `0.72 0.12 85` | Primary buttons, user chat bubble (dark `--primary-foreground` sits on the gold so it clears AA) |
+| `--primary-foreground` | `0.22 0.035 85` | Text on primary (dark, for AA on the gold fill) |
+| `--brand` | `0.82 0.11 85` | Brand gold **as text/icon on dark** (brighter than `--primary` for legibility) |
+| `--ring` | `0.8 0.11 85` | Focus ring |
 
 ### Semantic artifact family (one chroma band, hues spaced)
 
 | Token | OKLCH | Artifact / meaning |
 |---|---|---|
-| `--seg` | `0.7 0.13 240` | Audience segment — blue |
-| `--msg` | `0.74 0.14 305` | Message copy — violet (L raised for AA on small labels) |
-| `--launch` | `0.72 0.13 162` | Launch / success — emerald |
-| `--results` | `0.8 0.13 78` | Results — amber |
-| `--warning` | `0.8 0.14 72` | Genuine warnings only |
+| `--seg` | `0.72 0.1 230` | Audience segment — cool blue |
+| `--msg` | `0.76 0.1 200` | Message copy — teal/cyan (L raised for AA on small labels) |
+| `--launch` | `0.74 0.12 158` | Launch / success — emerald |
+| `--results` | `0.74 0.12 350` | Results — rose (brand owns the warm gold) |
+| `--warning` | `0.78 0.14 55` | Genuine warnings only |
 | `--destructive` | `0.64 0.2 25` | Errors, failures — fills, borders, large alert icons |
 | `--destructive-foreground` | `0.83 0.13 25` | Destructive **text** on a tint (lighter for AA) |
 
@@ -66,8 +66,8 @@ OKLCH throughout. Tokens are defined as CSS custom properties and surfaced to Ta
 
 ### Data-viz ramps (tokenized, not hard-coded in charts)
 
-- **Calm chart family** `--chart-1..5`: `0.68 0.13 240` (blue), `0.72 0.12 162` (emerald),
-  `0.71 0.13 305` (violet), `0.8 0.13 78` (amber), `0.7 0.11 215` (steel). Drawn from the same
+- **Calm chart family** `--chart-1..5`: `0.72 0.1 230` (blue), `0.74 0.11 158` (emerald),
+  `0.76 0.1 200` (teal/cyan), `0.74 0.12 350` (rose), `0.78 0.1 85` (gold). Drawn from the same
   low-chroma family — never a high-chroma rainbow.
 - **Failure severity ramp** `--fail-1..5` (red → amber): `0.64 0.2 25`, `0.68 0.17 45`,
   `0.74 0.15 60`, `0.8 0.14 78`, `0.6 0.19 12`. Visually signals "trouble" against the calm
@@ -78,7 +78,7 @@ OKLCH throughout. Tokens are defined as CSS custom properties and surfaced to Ta
 
 ### Usage rules
 
-- One accent per surface. The brand iris is for chrome and primary action only.
+- One accent per surface. The brand gold is for chrome and primary action only.
 - Semantic colors carry meaning; never use them decoratively or at full saturation on
   inactive states (badges use the hue at `/15` fill + the hue as text).
 - Status and severity are **never color-only** — always paired with a text label or icon/shape.
@@ -157,5 +157,5 @@ Calm and state-bearing only; no decorative or page-load choreography.
 - Body text and `--muted-foreground` clear AA on the dark canvas; the only intentional
   sub-base cases are dimmed meta (`/70`, `/40`) at large sizes. Destructive text uses
   `--destructive-foreground` (see Color).
-- A faint fixed radial iris glow sits behind the canvas (`body::before`, `z-index:-1`,
+- A faint fixed radial gold glow sits behind the canvas (`body::before`, `z-index:-1`,
   `pointer-events:none`) so the near-black isn't a flat slab; it never repaints on scroll.

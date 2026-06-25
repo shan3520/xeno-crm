@@ -46,8 +46,9 @@ copy → launch → watch the funnel climb on the dashboard.
 | `NVIDIA_API_KEY`, `NVIDIA_MODEL` | NVIDIA NIM provider (OpenAI-compatible) |
 | `AI_PROVIDER_ORDER` | comma-separated try order, e.g. `groq,nvidia,gemini` (default `groq,gemini`) |
 | `AI_PROVIDER_TIMEOUT_MS` | per-provider response budget before failing over (default `22000`) |
-| `CRM_API_URL` | server-side base URL for crm-api (used by `/api/chat`) |
-| `NEXT_PUBLIC_CRM_API_URL` | browser base URL for crm-api (dashboard). Set both to the same value. |
+| `CRM_API_URL` | server-side base URL for crm-api (used by `/api/chat`; default `http://localhost:3001`) |
+| `NEXT_PUBLIC_CRM_API_URL` | browser base URL for crm-api (dashboard; default `http://localhost:3001`). Set both to the same value. |
+| `CRM_API_TIMEOUT_MS` | optional — server-side fetch timeout for crm-api calls in `/api/chat` (default `8000`) |
 
 Only the **server-side** `/api/chat` route calls an LLM — keys never reach the browser.
 
@@ -60,10 +61,13 @@ Only the **server-side** `/api/chat` route calls an LLM — keys never reach the
 | `CHANNEL_STUB_URL` | base URL of the channel-stub (`/send`) |
 | `PUBLIC_BASE_URL` | this service's own public base URL |
 | `WEB_ORIGIN` | CORS allow-origin (the web app) |
-| `WORKER_CONCURRENCY` | rows the worker claims per pass (default 10) |
-| `WORKER_MAX_ATTEMPTS` | permanent-failure attempts before dead-letter (default 5) |
-| `SEND_RATE_PER_SEC` | per-worker send spacing (default 50) |
+| `WORKER_CONCURRENCY` | required — rows the worker claims per pass (`.env.example` ships 10) |
+| `WORKER_MAX_ATTEMPTS` | required — permanent-failure attempts before dead-letter (`.env.example` ships 5) |
+| `SEND_RATE_PER_SEC` | required — per-worker send spacing (`.env.example` ships 50) |
 | `RECONCILE_INTERVAL_MS` | reconcile sweep cadence (default 30000) |
+| `RATE_LIMIT_MAX` | optional — per-IP request cap per window via `@nestjs/throttler` (default 200; `/health` + `/receipts` exempt) |
+| `RATE_LIMIT_TTL_MS` | optional — rate-limit window in ms (default 60000) |
+| `CALLBACK_HMAC_SECRET` | optional — shared secret for HMAC-signed `/receipts` callbacks (default empty = verification off; see [deployment.md](deployment.md)) |
 | `RUN_SEED` | deploy-only — set `false` to skip the wipe-and-reseed on redeploy |
 | `PORT` | injected by host; defaults to 3001 locally |
 
@@ -74,7 +78,8 @@ Only the **server-side** `/api/chat` route calls an LLM — keys never reach the
 | `CRM_RECEIPT_URL` | where to POST lifecycle callbacks (crm-api `/receipts`) |
 | `DELIVERED_RATE` / `OPEN_RATE` / `CLICK_RATE` / `CONVERT_RATE` | funnel probabilities |
 | `DUPLICATE_PCT` | fraction of callbacks duplicated (exercises idempotency) |
-| `MIN_DELAY_MS` / `MAX_DELAY_MS` | callback jitter window (exercises out-of-order arrival) |
+| `MIN_DELAY_MS` / `MAX_DELAY_MS` | callback jitter window (exercises out-of-order arrival; defaults 500 / 30000) |
+| `CALLBACK_HMAC_SECRET` | optional — when set (matching crm-api), signs each receipt POST with an `x-signature` header (default empty = unsigned) |
 | `PORT` | injected by host; defaults to 3002 locally |
 
 ## Useful commands

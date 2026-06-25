@@ -89,12 +89,20 @@ Most knobs are already pinned in `render.yaml`. You only fill the `sync: false` 
 | ---------------------- | --------------------------------------------------------------------- |
 | `DATABASE_URL`         | the **pooled** Neon string from step 1                                |
 | `MIGRATE_DATABASE_URL` | the **direct** Neon string from step 1 (optional but recommended)     |
-| `CHANNEL_STUB_URL`     | `https://xeno-channel-stub.onrender.com`                              |
+| `CHANNEL_STUB_URL`     | `https://xeno-channel-stub-fena.onrender.com`                              |
 | `PUBLIC_BASE_URL`      | `https://xeno-crm-api.onrender.com`                                   |
 | `WEB_ORIGIN`           | your Vercel URL — set after step 3, e.g. `https://xeno-crm.vercel.app` |
 
 (Already set from the Blueprint, no action: `NODE_ENV`, `WORKER_CONCURRENCY=5`,
-`WORKER_MAX_ATTEMPTS=5`, `SEND_RATE_PER_SEC=20`, `RECONCILE_INTERVAL_MS=30000`, `RUN_SEED=true`.)
+`WORKER_MAX_ATTEMPTS=5`, `SEND_RATE_PER_SEC=20`, `RECONCILE_INTERVAL_MS=30000`, `RUN_SEED=false`.)
+
+**Optional hardening knobs** (unset = safe defaults; not in the Blueprint):
+
+| Key                   | Default | What it does                                                                          |
+| --------------------- | ------- | ------------------------------------------------------------------------------------- |
+| `RATE_LIMIT_MAX`      | `200`   | per-IP requests per window (`@nestjs/throttler`); `/health` + `/receipts` are exempt  |
+| `RATE_LIMIT_TTL_MS`   | `60000` | rate-limit window, in ms                                                               |
+| `CALLBACK_HMAC_SECRET`| empty   | shared secret to require HMAC-signed `/receipts` callbacks (see §2d below)             |
 
 **xeno-channel-stub** → Environment:
 
@@ -105,21 +113,42 @@ Most knobs are already pinned in `render.yaml`. You only fill the `sync: false` 
 (Already set: `DELIVERED_RATE`, `OPEN_RATE`, `CLICK_RATE`, `CONVERT_RATE`, `DUPLICATE_PCT`,
 `MIN_DELAY_MS`, `MAX_DELAY_MS`.)
 
+Optional: `CALLBACK_HMAC_SECRET` — only set this if you are enabling signed callbacks (see §2d).
+
 > The exact service names above assume you kept the `render.yaml` names. If Render appended a
 > suffix, use the real URL shown on each service's page (top of the dashboard).
 
 ### 2c. Redeploy and verify
 
 1. **xeno-channel-stub** → **Manual Deploy → Deploy latest commit**. Wait for green.
-   - Verify: open `https://xeno-channel-stub.onrender.com/health` → `{"status":"ok","service":"channel-stub"}`.
-2. **xeno-crm-api** → **Manual Deploy → Deploy latest commit**. The build runs
-   `prisma migrate deploy` then the **Looms seed** against Neon (watch the build log:
-   "~2,000 customers, ~6,000 orders").
-   - Verify: `https://xeno-crm-api.onrender.com/health` → `{"status":"ok"}`.
+   - Verify: open `https://xeno-channel-stub-fena.onrender.com/health` → `{"status":"ok","service":"channel-stub"}`.
+2. **xeno-crm-api** → **Manual Deploy → Deploy latest commit**. The build always runs
+   `prisma migrate deploy` against Neon. The **Looms seed** runs only when `RUN_SEED` is **not**
+   `"false"` — and the Blueprint pins `RUN_SEED=false`, so the **first** deploy migrates but does
+   **not** seed. To populate the Looms dataset on the first deploy, set crm-api env `RUN_SEED=true`
+   and redeploy (watch the build log: "~2,000 customers, ~6,000 orders"), then set it back to
+   `false` for later deploys.
+   - Verify: `https://xeno-crm-api.onrender.com/health` → `{"status":"ok","service":"crm-api"}`.
 
 > **Re-seeding:** the seed is idempotent — it **wipes and rebuilds** the Looms dataset, which
-> also clears any communications/campaigns produced by running the loop. To preserve
-> loop-generated demo data on later deploys, set crm-api env `RUN_SEED=false`.
+> also clears any communications/campaigns produced by running the loop. The Blueprint ships
+> `RUN_SEED=false` to preserve loop-generated demo data; flip it to `true` only when you want to
+> reset the dataset, then back to `false`.
+
+### 2d. (Optional) Authenticate `/receipts` callbacks with HMAC
+
+By default, `/receipts` is unauthenticated — anyone who guesses a `communicationId` could forge
+lifecycle/CONVERTED events. To require **HMAC-SHA256-signed** callbacks, set the **same** secret on
+**both** services via `CALLBACK_HMAC_SECRET`. When the secret is empty on crm-api (the default),
+verification is OFF and the system is fully backward compatible.
+
+> ⚠️ **Rollout order — set the secret on the channel-stub FIRST, then crm-api.** The channel-stub
+> only signs its callbacks once `CALLBACK_HMAC_SECRET` is set; crm-api only verifies once its own
+> secret is set. If you set crm-api first, it will reject (`401`) the stub's still-unsigned callbacks
+> and break delivery tracking until the stub catches up. Do channel-stub → crm-api, never the reverse.
+>
+> crm-api verifies over the exact raw request bytes (`receipt-signature.guard.ts`); the stub signs
+> with an `x-signature` header. To roll back, clear the secret on crm-api first, then the stub.
 
 ---
 
@@ -183,8 +212,8 @@ Set all for the **Production** environment (and Preview if you want preview depl
 Quick curl checks:
 
 ```bash
-curl https://xeno-crm-api.onrender.com/health        # {"status":"ok"}
-curl https://xeno-channel-stub.onrender.com/health    # {"status":"ok","service":"channel-stub"}
+curl https://xeno-crm-api.onrender.com/health        # {"status":"ok","service":"crm-api"}
+curl https://xeno-channel-stub-fena.onrender.com/health    # {"status":"ok","service":"channel-stub"}
 ```
 
 ---
@@ -199,7 +228,7 @@ curl https://xeno-channel-stub.onrender.com/health    # {"status":"ok","service"
 | ------------------ | ---------------------------------------------- |
 | `KEEPALIVE_ENABLED`| `true`                                         |
 | `CRM_API_URL`      | `https://xeno-crm-api.onrender.com`            |
-| `CHANNEL_STUB_URL` | `https://xeno-channel-stub.onrender.com`       |
+| `CHANNEL_STUB_URL` | `https://xeno-channel-stub-fena.onrender.com`       |
 
 These are **Variables**, not Secrets (URLs aren't sensitive). The workflow also runs on
 **workflow_dispatch** so you can trigger it manually from the **Actions** tab.
@@ -258,9 +287,11 @@ unset locally. See each app's `.env.example` for the full key list.
 
 **crm-api (Render):** `DATABASE_URL` (pooled), `MIGRATE_DATABASE_URL` (direct, optional),
 `CHANNEL_STUB_URL`, `PUBLIC_BASE_URL`, `WEB_ORIGIN`, `WORKER_CONCURRENCY`, `WORKER_MAX_ATTEMPTS`,
-`SEND_RATE_PER_SEC`, `RECONCILE_INTERVAL_MS`, `RUN_SEED`, `NODE_ENV` (+ `PORT` injected by Render)
+`SEND_RATE_PER_SEC`, `RECONCILE_INTERVAL_MS`, `RUN_SEED`, `NODE_ENV`, `RATE_LIMIT_MAX` (optional),
+`RATE_LIMIT_TTL_MS` (optional), `CALLBACK_HMAC_SECRET` (optional) (+ `PORT` injected by Render)
 
 **channel-stub (Render):** `CRM_RECEIPT_URL`, `DELIVERED_RATE`, `OPEN_RATE`, `CLICK_RATE`,
-`CONVERT_RATE`, `DUPLICATE_PCT`, `MIN_DELAY_MS`, `MAX_DELAY_MS` (+ `PORT` injected by Render)
+`CONVERT_RATE`, `DUPLICATE_PCT`, `MIN_DELAY_MS`, `MAX_DELAY_MS`, `CALLBACK_HMAC_SECRET` (optional)
+(+ `PORT` injected by Render)
 
 **GitHub Actions Variables:** `KEEPALIVE_ENABLED`, `CRM_API_URL`, `CHANNEL_STUB_URL`

@@ -47,8 +47,8 @@ unflattering ones (failures, n/a-for-SMS, "that turn went quiet"). The emotional
 **confidence at the moment of approval** — the marketer should feel they can see exactly what
 the AI built and exactly what pressing launch will do.
 
-The visual expression of this is the "Quiet Console": a cool near-black canvas, a single
-iris/indigo accent for chrome, and a deliberately desaturated semantic family that color-codes
+The visual expression of this is the "Quiet Console": a warm near-black canvas, a single
+brass/gold accent for chrome, and a deliberately desaturated semantic family that color-codes
 the four AI artifact types (segment / message / launch / results) so they read as one
 intentional set rather than raw framework hues.
 

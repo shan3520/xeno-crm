@@ -10,7 +10,7 @@
 # CONFIGURE (repo → Settings → Secrets and variables → Actions → Variables):
 #   KEEPALIVE_ENABLED  = true
 #   CRM_API_URL        = https://xeno-crm-api.onrender.com
-#   CHANNEL_STUB_URL   = https://xeno-channel-stub.onrender.com
+#   CHANNEL_STUB_URL   = https://xeno-channel-stub-fena.onrender.com
 # URLs are not secret, so they live in Variables (vars.*), not Secrets.
 
 name: keepalive
