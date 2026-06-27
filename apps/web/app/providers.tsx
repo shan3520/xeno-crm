@@ -17,6 +17,15 @@ export function Providers({ children }: { children: ReactNode }) {
           queries: {
             staleTime: 5_000,
             retry: 2,
+            // The app has no offline mode — it talks to a known backend over the internet. With
+            // the default networkMode "online", React Query PAUSES a query (status "pending",
+            // fetchStatus "paused", null error) whenever its online-detection thinks the browser
+            // is offline — which misfires in CDP/automation browsers, behind some VPNs/proxies,
+            // and on transient navigator.onLine flips. A paused query never fires the fetch, so
+            // the funnel looks frozen and a bad-id page falls to the null-error branch instead of
+            // a real 404 → "Campaign not found". "always" fires regardless; genuine network
+            // failures then surface as real errors the UI already handles.
+            networkMode: "always",
           },
         },
       }),
