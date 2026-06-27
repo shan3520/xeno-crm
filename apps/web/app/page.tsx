@@ -501,7 +501,8 @@ function SiteFooter() {
       </div>
       <div className="border-t border-border/40">
         <p className="mx-auto max-w-[1200px] px-6 py-5 text-xs text-muted-foreground">
-          A demonstration project built in the spirit of Xeno.
+          © {new Date().getFullYear()} Looms — an AI-native campaign console, built
+          in the spirit of Xeno.
         </p>
       </div>
     </footer>

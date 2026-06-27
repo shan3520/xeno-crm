@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { sanitizeAssistantText } from "@/lib/ai/sanitize-text";
 import { AI_TOOL_NAMES } from "@xeno/shared";
 import {
   asFailure,
@@ -286,14 +287,20 @@ export function Console() {
               ))}
 
               {status === "submitted" && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                <div
+                  role="status"
+                  className="flex items-center gap-2 text-sm text-muted-foreground"
+                >
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                   Thinking…
                 </div>
               )}
 
               {error && (
-                <div className="rounded-2xl border border-warning/30 bg-warning/5 px-5 py-4">
+                <div
+                  role="alert"
+                  className="rounded-2xl border border-warning/30 bg-warning/5 px-5 py-4"
+                >
                   <p className="text-sm font-medium text-foreground">
                     {rateLimited
                       ? "The assistant is busy right now"
@@ -315,7 +322,10 @@ export function Console() {
               )}
 
               {stalled && !error && !busy && (
-                <div className="rounded-2xl border border-warning/30 bg-warning/5 px-5 py-4">
+                <div
+                  role="status"
+                  className="rounded-2xl border border-warning/30 bg-warning/5 px-5 py-4"
+                >
                   <p className="text-sm font-medium text-foreground">
                     That turn went quiet
                   </p>
@@ -342,6 +352,12 @@ export function Console() {
               )}
             </div>
           )}
+          {/* Screen-reader announcer: the segment/message/launch cards appear silently in the
+              visual flow, so a non-sighted user gets no signal that a send is now assemblable.
+              Announce when both artifacts are ready. Polite = waits for a natural pause. */}
+          <div aria-live="polite" className="sr-only">
+            {showLaunch ? "A launch is ready for you to review and confirm." : ""}
+          </div>
           <div ref={bottomRef} />
         </div>
       </main>
@@ -468,13 +484,14 @@ function MessageBlock({
     <div className="space-y-3">
       {message.parts.map((part, i) => {
         if (part.type === "text") {
-          if (!part.text.trim()) return null;
+          const clean = sanitizeAssistantText(part.text);
+          if (!clean) return null;
           return (
             <p
               key={i}
               className="msg-in whitespace-pre-wrap text-sm leading-relaxed text-foreground/90"
             >
-              {part.text}
+              {clean}
             </p>
           );
         }

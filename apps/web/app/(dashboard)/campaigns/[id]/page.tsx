@@ -16,7 +16,7 @@ import {
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
-import { ApiError } from "@/lib/analytics-api";
+import { errorStatus } from "@/lib/analytics-api";
 import { useCampaignStats } from "@/hooks/use-campaign-stats";
 import { StatsGrid } from "@/components/charts/stats-grid";
 import { RevenueCard } from "@/components/charts/revenue-card";
@@ -227,6 +227,11 @@ export default function CampaignDetailPage() {
   }
 
   if (isError || !data) {
+    // A 404 (real or AI-hallucinated id) is a dead end, not a transient failure: show a clear
+    // "not found" with a way back, never a Retry that re-fetches the same 404. Everything else
+    // is treated as retryable. We never surface the raw fetch message (it can be a noisy
+    // "CRM …/stats -> 404: {json}") — a calm, human line instead.
+    const notFound = errorStatus(error) === 404;
     return (
       <div className="space-y-6">
         <Link
@@ -237,23 +242,13 @@ export default function CampaignDetailPage() {
           All campaigns
         </Link>
         <ErrorState
-          title={
-            error instanceof ApiError && error.status === 404
-              ? "Campaign not found"
-              : "Failed to load campaign stats"
-          }
+          title={notFound ? "Campaign not found" : "Failed to load campaign stats"}
           message={
-            error instanceof ApiError && error.status === 404
+            notFound
               ? "This campaign doesn't exist or may have been removed."
-              : error instanceof Error
-                ? error.message
-                : "Unknown error"
+              : "We couldn't load this campaign's stats just now. This is usually temporary — please try again."
           }
-          onRetry={
-            error instanceof ApiError && error.status === 404
-              ? undefined
-              : () => void refetch()
-          }
+          onRetry={notFound ? undefined : () => void refetch()}
         />
       </div>
     );

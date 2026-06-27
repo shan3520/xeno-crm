@@ -143,6 +143,26 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 
 export { ApiError };
 
+/**
+ * Best-effort HTTP status for an unknown thrown error. Prefers an ApiError instance but also
+ * duck-types a numeric `status` field, so a 404 is still recognized even if the ApiError
+ * prototype identity is lost (e.g. an error re-thrown across a client chunk boundary, where
+ * `instanceof ApiError` can silently fail). Callers use this to branch a 404 → "not found"
+ * cleanly instead of falling through to a scary generic "Unknown error".
+ */
+export function errorStatus(error: unknown): number | undefined {
+  if (error instanceof ApiError) return error.status;
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    typeof (error as { status: unknown }).status === "number"
+  ) {
+    return (error as { status: number }).status;
+  }
+  return undefined;
+}
+
 export function fetchCampaignStats(
   campaignId: string,
 ): Promise<CampaignStatsResponse> {

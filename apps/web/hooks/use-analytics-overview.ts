@@ -14,6 +14,10 @@ import {
  * badge and the per-row counters actually move while a send drains — instead of going stale
  * until the next window focus. Once everything is COMPLETED, polling stops and it falls back
  * to refetch-on-window-focus.
+ *
+ * refetchIntervalInBackground keeps the "Live" badge honest when this tab isn't focused —
+ * otherwise the interval pauses on a backgrounded tab and the badge promises live data while
+ * the counters sit stale until the user clicks back.
  */
 export function useAnalyticsOverview() {
   return useQuery<OverviewResponse>({
@@ -25,6 +29,7 @@ export function useAnalyticsOverview() {
       );
       return hasLive ? 5000 : false;
     },
+    refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
   });
 }
