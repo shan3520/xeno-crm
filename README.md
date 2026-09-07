@@ -6,7 +6,7 @@
 > and approves; the system simulates the full message lifecycle through a separate channel service
 > and tracks **delivered → opened → read → clicked → converted**.
 
-Built for the **Xeno Engineering Take-Home — "Build an AI-Native Mini CRM for Reaching Shoppers."**
+**Build an AI-Native Mini CRM for Reaching Shoppers.**
 
 | | |
 | --- | --- |
