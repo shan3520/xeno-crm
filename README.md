@@ -6,7 +6,7 @@
 > and approves; the system simulates the full message lifecycle through a separate channel service
 > and tracks **delivered → opened → read → clicked → converted**.
 
-**Build an AI-Native Mini CRM for Reaching Shoppers.**
+
 
 | | |
 | --- | --- |
